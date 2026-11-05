@@ -118,10 +118,11 @@ hermes plugins install /root/stagehands
 hermes config set delegation.backend stagehands
 ```
 
-Use your checkout's absolute path if it differs. In an active Hermes conversation, switch immediately with:
+Use your checkout's absolute path if it differs. In an active Hermes conversation (CLI, TUI, Desktop, or Telegram), inspect the roster or switch immediately with the plugin's built-in `/stagehands` slash command:
 
 ```text
-/delegation stagehands --now
+/stagehands
+/stagehands --now
 ```
 
 The built-in roster needs no worker configuration. Keep the primary conversational model as your Sovereign and select a `worker` when delegating noisy tasks.

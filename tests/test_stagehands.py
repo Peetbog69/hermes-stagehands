@@ -241,6 +241,40 @@ class TestStagehandsProvider(unittest.TestCase):
             DEFAULT_WORKERS["scout"]["request_overrides"]["max_tokens"], 800
         )
 
+    def test_register_wires_provider_and_slash_command(self):
+        import __init__ as stagehands_pkg
+
+        providers = []
+        commands = {}
+        calls = []
+
+        class StubBackends:
+            def set_global_backend(self, name, *, session_key="", apply_now=False):
+                calls.append((name, session_key, apply_now))
+
+        class StubCtx:
+            delegation_backends = StubBackends()
+
+            def register_delegation_provider(self, p):
+                providers.append(p)
+
+            def register_command(self, name, handler, **kwargs):
+                commands[name] = (handler, kwargs)
+
+        stagehands_pkg.register(StubCtx())
+        self.assertEqual(len(providers), 1)
+        self.assertEqual(providers[0].name, "stagehands")
+        self.assertIn("stagehands", commands)
+
+        handler, _ = commands["stagehands"]
+        roster_text = handler("")
+        for worker in WORKERS:
+            self.assertIn(worker, roster_text)
+
+        now_text = handler("--now", session_key="tg_123")
+        self.assertIn("applied to this chat", now_text)
+        self.assertEqual(calls[-1], ("stagehands", "tg_123", True))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
