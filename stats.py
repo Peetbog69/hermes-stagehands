@@ -165,7 +165,7 @@ def compute_stats(
             # Pre-fetch max/subsequent assistant counts per session only when needed
             for r in rows:
                 c = r["content"] or ""
-                if len(c) >= 600 and "[SKILL_PRUNED:" not in c:
+                if not c.startswith("[") or (len(c) >= 600 and "[SKILL_PRUNED:" not in c):
                     continue
                 m = _PRUNED_CHARS_RE.search(c)
                 if not m:
