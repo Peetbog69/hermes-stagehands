@@ -6,8 +6,10 @@ from typing import Any
 
 try:
     from .provider import DEFAULT_WORKERS, StagehandsProvider
+    from .stats import compute_stats, format_stats_report
 except ImportError:
     from provider import DEFAULT_WORKERS, StagehandsProvider
+    from stats import compute_stats, format_stats_report
 
 
 def _make_slash_handler(ctx: Any, provider: StagehandsProvider):
@@ -19,6 +21,9 @@ def _make_slash_handler(ctx: Any, provider: StagehandsProvider):
         action_words = [w for w in words if w not in ("--now", "now")]
         action = action_words[0] if action_words else "status"
         api = getattr(ctx, "delegation_backends", None)
+
+        if action in ("stats", "savings", "scoreboard"):
+            return format_stats_report(compute_stats())
 
         if action in ("on", "enable", "use", "activate") or (action == "status" and now):
             if api is None:
@@ -58,7 +63,7 @@ def _make_slash_handler(ctx: Any, provider: StagehandsProvider):
             desc = spec.get("desc", "")
             lines.append(f"  • {name:<12} {model} (effort={effort}, max_tokens={cap}) — {desc}")
         lines.append(
-            "\nCommands: `/stagehands --now` (activate in this chat) · "
+            "\nCommands: `/stagehands stats` (live savings) · `/stagehands --now` (activate in this chat) · "
             "`/stagehands on` (save for `/new`) · `/stagehands off [--now]`"
         )
         return "\n".join(lines)
@@ -74,6 +79,6 @@ def register(ctx: Any) -> None:
         ctx.register_command(
             "stagehands",
             _make_slash_handler(ctx, provider),
-            description="Inspect the 5 Stagehands workers or activate Stagehands delegation (--now for this chat)",
-            args_hint="[status | on | off] [--now]",
+            description="Inspect Stagehands workers, live savings (`stats`), or activate (`--now`)",
+            args_hint="[status | stats | on | off] [--now]",
         )
