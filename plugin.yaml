@@ -1,0 +1,7 @@
+name: stagehands
+version: 1.0.0
+description: Sovereign & Stagehands — delegation provider plugin that routes subagents to typed, budgeted backstage workers (scout, librarian, code_monkey, adversary, briefer) while preserving the frontier sovereign voice.
+author: Tyler Gray (@Peetborg) & Nimbo
+requires_hermes: '>=0.22.5'
+config_keys:
+  - delegation.backends.stagehands
