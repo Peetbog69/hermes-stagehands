@@ -102,6 +102,14 @@ The checked-in [benchmark report](bench/BENCHMARK_REPORT.md) and [machine-readab
 
 **Route version matters, too.** TASK-02's saved benchmark uses `deepseek/deepseek-v4-flash`; the current `code_monkey` default is `deepseek/deepseek-v4.1-flash`. The demo shows the current route live and preserves the historical replay's model and costs.
 
+### Live production case study (12 days on `google/gemini-4-argon`)
+
+Beyond the synthetic suite above, we audited a live daily-driver Hermes v0.22.5 companion running **`google/gemini-4-argon`** over a 12-day production window (**2026-10-23 to 2026-11-04**, read-only from `state.db`):
+
+- **2,303 Argon API calls** and **2,079 deduplicated tool calls** injected **10,296,604 characters (`~2,574,151` raw tokens)** of tool output straight into the parent Argon conversation windows.
+- Because every tool output stays in the parent transcript and is re-read on subsequent turns, those `2.57M` raw tool tokens compounded into **230,840,257 total Argon input tokens** (`53.28M` uncached + `177.56M` cache-read) against just `1.31M` output tokens (**176× more input read than output written**).
+- **95.5% of that raw tool-output volume (`2.46M / 2.57M` tokens)** came from four backstage-delegable lanes (`terminal` doc builds & CLI email, `web_extract`/`web_search`/`read_file`, `session_search`/`fact_store` hydrations, and procedural `skill_view` loads). Full audit: [`bench/PRODUCTION_CASE_STUDY.md`](bench/PRODUCTION_CASE_STUDY.md).
+
 ## Built for Hermes v0.22.5: the four stitches
 
 1. **Zero-config roster.** `DEFAULT_WORKERS` supplies all five roles immediately. An empty configuration still produces a populated worker enum and deterministic schema extensions.
