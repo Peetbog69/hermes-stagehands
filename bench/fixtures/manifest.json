@@ -1,0 +1,88 @@
+{
+  "files": {
+    "codebase/accounts.py": {
+      "bytes": 738,
+      "lines": 22,
+      "sha256": "af640b86b46a27b1039bd4639c79fa34559c9413b5ca87bab576b4a18421b873"
+    },
+    "codebase/gateway.py": {
+      "bytes": 610,
+      "lines": 23,
+      "sha256": "6982a860f1625827084be9963e22591a7877e393656a5cfc9efd60a752b750c8"
+    },
+    "codebase/worker.py": {
+      "bytes": 696,
+      "lines": 21,
+      "sha256": "c5b7dcacd6def4b4f13f5d71a39b1c1f95a269d900e320dc5d78995e05e1a188"
+    },
+    "docs/01_gateway.md": {
+      "bytes": 1329,
+      "lines": 28,
+      "sha256": "f661b2db836f16d08fc7172579ce1c492b87bc372cbd1edd7622235b8ed08a71"
+    },
+    "docs/02_auth.md": {
+      "bytes": 1304,
+      "lines": 27,
+      "sha256": "473c25be273ddd1e4ae57b5a29b54e6bb0f84072ee1e55d363d3a9bc7c0a17ba"
+    },
+    "docs/03_rate_limits.md": {
+      "bytes": 1215,
+      "lines": 26,
+      "sha256": "2b35caf57e885f0e7a7e65146efa7046abbc6466ce07022ad01b3cf406cdb5d9"
+    },
+    "docs/04_operations.md": {
+      "bytes": 1211,
+      "lines": 26,
+      "sha256": "dfee1a04eea860ffa06fd43cd6f490c99b1bdc7369556d3a5b15ac2927ba423b"
+    },
+    "docs/05_api_contract.md": {
+      "bytes": 1230,
+      "lines": 27,
+      "sha256": "32e5881015af5d165060905c7494666f07a117e6bf3e6944ca31dc6c82ed25f5"
+    },
+    "dump_50kb.json": {
+      "bytes": 51200,
+      "lines": 1933,
+      "sha256": "98e7dd2f01059b02c203906c38dfec00bb92f10cc273c0365c8b0434d78ccb2c"
+    },
+    "logs_2000_lines.txt": {
+      "bytes": 277934,
+      "lines": 2000,
+      "sha256": "af342542bf8240f715e8c404b0a380f3e04ab80fa6a84beab5bf68b589d57e90"
+    }
+  },
+  "ground_truth": {
+    "code_findings": [
+      "opposite-direction transfers acquire the same locks in reverse order",
+      "RetryExhausted is not caught by the TransientGatewayError handler"
+    ],
+    "log_incidents": [
+      {
+        "evidence": "authd[1842]: ERROR jwks_refresh_failed issuer=https://id.atlas.example.test kid=rot-2026-11 reason=upstream_timeout rejected_requests=37",
+        "line": 417
+      },
+      {
+        "evidence": "kernel: Out of memory: Killed process 2317 (ledger-worker) total-vm:7340032kB anon-rss:6291456kB oom_score_adj:200",
+        "line": 1193
+      },
+      {
+        "evidence": "nginx[908]: ERROR upstream timed out (110: Connection timed out) request=\"POST /v2/transactions HTTP/1.1\" upstream=\"http://10.42.0.18:8080\" status=504 request_id=req-1781",
+        "line": 1781
+      }
+    ],
+    "transactions": {
+      "count": 60,
+      "failed_ids": [
+        "txn-000017",
+        "txn-000044"
+      ],
+      "pending_ids": [
+        "txn-000023",
+        "txn-000051"
+      ],
+      "total_amount_cents": 310710
+    }
+  },
+  "schema_version": 1,
+  "synthetic": true
+}

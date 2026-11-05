@@ -1,0 +1,167 @@
+{
+  "timestamp": "2026-11-05T00:55:41.370870+00:00",
+  "summary": {
+    "total_tasks_evaluated": 5,
+    "pure_sovereign_total_cost_usd": 0.9381,
+    "stagehands_total_cost_usd": 0.0851,
+    "aggregate_cost_savings_pct": 90.9,
+    "aggregate_cost_ratio": "11.0x cost reduction",
+    "pure_sovereign_total_memory_tokens": 93812,
+    "stagehands_total_memory_tokens": 3860,
+    "aggregate_memory_pollution_reduction_pct": 95.9
+  },
+  "rates_card_usd_per_million": {
+    "google/gemini-4-argon": {
+      "input": 10.0,
+      "output": 10.0,
+      "role": "Sovereign Voice (Audi)"
+    },
+    "deepseek/deepseek-v4-flash": {
+      "input": 0.5,
+      "output": 0.5,
+      "role": "Stagehand (scout / code_monkey / briefer)"
+    },
+    "qwen/qwen3.7-flash": {
+      "input": 0.4,
+      "output": 0.4,
+      "role": "Stagehand (librarian)"
+    },
+    "anthropic/claude-haiku-5.5": {
+      "input": 1.0,
+      "output": 1.0,
+      "role": "Stagehand (adversary)"
+    }
+  },
+  "task_breakdown": [
+    {
+      "task_id": "TASK-01",
+      "task_name": "Syslog & Auth Failure Triage",
+      "fixture": "logs_2000_lines.txt",
+      "worker_role": "scout",
+      "worker_model": "deepseek/deepseek-v4-flash",
+      "raw_context_bytes": 277934,
+      "raw_context_tokens": 73141,
+      "pure_sovereign": {
+        "input_tokens": 73641,
+        "output_tokens": 487,
+        "cost_usd": 0.74128,
+        "parent_memory_tokens": 74128
+      },
+      "sovereign_and_stagehands": {
+        "stagehand_cost_usd": 0.03693,
+        "sovereign_cost_usd": 0.00787,
+        "total_cost_usd": 0.0448,
+        "parent_memory_tokens": 787
+      },
+      "deltas": {
+        "cost_reduction_pct": 94.0,
+        "memory_pollution_reduction_pct": 98.9,
+        "savings_ratio": "16.5x cheaper"
+      }
+    },
+    {
+      "task_id": "TASK-02",
+      "task_name": "Multi-File Concurrency Bug Audit",
+      "fixture": "codebase/*.py",
+      "worker_role": "code_monkey",
+      "worker_model": "deepseek/deepseek-v4-flash",
+      "raw_context_bytes": 2104,
+      "raw_context_tokens": 554,
+      "pure_sovereign": {
+        "input_tokens": 1054,
+        "output_tokens": 347,
+        "cost_usd": 0.01401,
+        "parent_memory_tokens": 1401
+      },
+      "sovereign_and_stagehands": {
+        "stagehand_cost_usd": 0.00058,
+        "sovereign_cost_usd": 0.00647,
+        "total_cost_usd": 0.00705,
+        "parent_memory_tokens": 647
+      },
+      "deltas": {
+        "cost_reduction_pct": 49.7,
+        "memory_pollution_reduction_pct": 53.8,
+        "savings_ratio": "2.0x cheaper"
+      }
+    },
+    {
+      "task_id": "TASK-03",
+      "task_name": "Gateway Architecture & Rate Limit Retrieval",
+      "fixture": "docs/*.md",
+      "worker_role": "librarian",
+      "worker_model": "qwen/qwen3.7-flash",
+      "raw_context_bytes": 6413,
+      "raw_context_tokens": 1688,
+      "pure_sovereign": {
+        "input_tokens": 2188,
+        "output_tokens": 546,
+        "cost_usd": 0.02734,
+        "parent_memory_tokens": 2734
+      },
+      "sovereign_and_stagehands": {
+        "stagehand_cost_usd": 0.00099,
+        "sovereign_cost_usd": 0.00846,
+        "total_cost_usd": 0.00945,
+        "parent_memory_tokens": 846
+      },
+      "deltas": {
+        "cost_reduction_pct": 65.5,
+        "memory_pollution_reduction_pct": 69.1,
+        "savings_ratio": "2.9x cheaper"
+      }
+    },
+    {
+      "task_id": "TASK-04",
+      "task_name": "State Store Replication Red-Team Audit",
+      "fixture": "proposal (synthetic)",
+      "worker_role": "adversary",
+      "worker_model": "anthropic/claude-haiku-5.5",
+      "raw_context_bytes": 358,
+      "raw_context_tokens": 95,
+      "pure_sovereign": {
+        "input_tokens": 595,
+        "output_tokens": 613,
+        "cost_usd": 0.01208,
+        "parent_memory_tokens": 1208
+      },
+      "sovereign_and_stagehands": {
+        "stagehand_cost_usd": 0.00091,
+        "sovereign_cost_usd": 0.00913,
+        "total_cost_usd": 0.01004,
+        "parent_memory_tokens": 913
+      },
+      "deltas": {
+        "cost_reduction_pct": 16.9,
+        "memory_pollution_reduction_pct": 24.4,
+        "savings_ratio": "1.2x cheaper"
+      }
+    },
+    {
+      "task_id": "TASK-05",
+      "task_name": "50KB Financial Settlement Reconciliation",
+      "fixture": "dump_50kb.json",
+      "worker_role": "briefer",
+      "worker_model": "deepseek/deepseek-v4-flash",
+      "raw_context_bytes": 51200,
+      "raw_context_tokens": 13474,
+      "pure_sovereign": {
+        "input_tokens": 13974,
+        "output_tokens": 367,
+        "cost_usd": 0.14341,
+        "parent_memory_tokens": 14341
+      },
+      "sovereign_and_stagehands": {
+        "stagehand_cost_usd": 0.00705,
+        "sovereign_cost_usd": 0.00667,
+        "total_cost_usd": 0.01372,
+        "parent_memory_tokens": 667
+      },
+      "deltas": {
+        "cost_reduction_pct": 90.4,
+        "memory_pollution_reduction_pct": 95.3,
+        "savings_ratio": "10.5x cheaper"
+      }
+    }
+  ]
+}
