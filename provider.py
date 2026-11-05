@@ -13,37 +13,32 @@ from agent.delegation_provider import (
 DEFAULT_WORKERS: dict[str, dict[str, Any]] = {
     "scout": {
         "model": "deepseek/deepseek-v4-flash",
-        "provider": "nous",
         "reasoning_effort": "low",
-        "request_overrides": {"max_tokens": 800},
+        "request_overrides": {"max_tokens": 4096},
         "desc": "Fast log/file/URL reader; extracts signal and drops raw noise (<=300 words)",
     },
     "librarian": {
         "model": "qwen/qwen3.7-flash",
-        "provider": "nous",
         "reasoning_effort": "low",
-        "request_overrides": {"max_tokens": 1000},
-        "desc": "Multi-source doc and codebase searcher returning cited excerpts only",
+        "request_overrides": {"max_tokens": 4096},
+        "desc": "Multi-source doc and codebase searcher returning cited excerpts only (<=350 words)",
     },
     "code_monkey": {
         "model": "deepseek/deepseek-v4.1-flash",
-        "provider": "nous",
         "reasoning_effort": "low",
-        "request_overrides": {"max_tokens": 1500},
-        "desc": "Backstage mechanic for repo greps, test runs, and root-cause diffs",
+        "request_overrides": {"max_tokens": 4096},
+        "desc": "Backstage mechanic for repo greps, test runs, and root-cause diffs (<=400 words)",
     },
     "adversary": {
         "model": "anthropic/claude-haiku-5.5",
-        "provider": "nous",
         "reasoning_effort": "medium",
-        "request_overrides": {"max_tokens": 1200},
-        "desc": "Red-team auditor finding edge cases, race conditions, and security holes",
+        "request_overrides": {"max_tokens": 4096},
+        "desc": "Red-team auditor finding edge cases, race conditions, and security holes (<=350 words)",
     },
     "briefer": {
         "model": "deepseek/deepseek-v4-flash",
-        "provider": "nous",
         "reasoning_effort": "low",
-        "request_overrides": {"max_tokens": 600},
+        "request_overrides": {"max_tokens": 4096},
         "desc": "Executive synthesizer pre-digesting heavy JSON/payload dumps into compact briefs (<=250 words)",
     },
 }
@@ -162,6 +157,11 @@ class StagehandsProvider(DelegationProvider):
             route: dict[str, Any] = {"label": worker_name}
             for field in _WORKER_ROUTE_FIELDS:
                 val = worker.get(field)
+                # Inherit delegation.provider when worker doesn't pin one; when both are
+                # unset, omitting 'provider' lets Hermes inherit the parent session's
+                # active provider (Nous Portal, OpenRouter, etc.) and auto-derive api_mode.
+                if field == "provider" and (val is None or val == ""):
+                    val = config.get("provider")
                 # Only emit service_tier or other optional fields when explicitly set;
                 # an unsupported default service_tier='fast' fails spawn in task_service_tier().
                 if val is not None and val != "":

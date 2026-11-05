@@ -19,7 +19,9 @@ import re
 import sqlite3
 from typing import Any
 
-_PRUNED_CHARS_RE = re.compile(r"\(([\d,]+)\s+chars\)")
+_PRUNED_CHARS_RE = re.compile(
+    r"(?:\(([\d,]+)\s+chars(?:\s+result)?\)|demoted at compaction\s+[—-]\s+([\d,]+)\s+chars\s+preserved)"
+)
 ARGON_INPUT_USD_PER_M = 3.00
 WORKER_INPUT_USD_PER_M = 0.15
 
@@ -78,11 +80,13 @@ def compute_stats(
                 "SELECT id, source, model, started_at, input_tokens, output_tokens, "
                 "message_count, tool_call_count, api_call_count, "
                 "COALESCE(estimated_cost_usd, 0.0) AS estimated_cost_usd "
-                "FROM sessions WHERE source != 'subagent' "
-                "ORDER BY started_at DESC LIMIT 1"
+                "FROM sessions s WHERE s.source != 'subagent' "
+                "AND json_extract(s.model_config, '$._delegate_from') IS NULL "
+                "ORDER BY COALESCE((SELECT MAX(m.timestamp) FROM messages m WHERE m.session_id = s.id), s.started_at) DESC LIMIT 1"
             ).fetchone()
         if row:
             active_session = dict(row)
+        active_sid = active_session.get("id")
 
         # 1. Front-Door Bouncer: subagent runs (Robert Gotcha A: filter subagent explicitly,
         # never bare parent_session_id which also links /new, /branch, and compactions)
@@ -93,9 +97,9 @@ def compute_stats(
         if since_ts is not None:
             sub_where.append("s.started_at >= ?")
             sub_params.append(since_ts)
-        if session_id:
+        if active_sid:
             sub_where.append("s.parent_session_id = ?")
-            sub_params.append(session_id)
+            sub_params.append(active_sid)
 
         sub_rows = cur.execute(
             f"SELECT s.id, s.parent_session_id, s.model, s.started_at, "
@@ -139,8 +143,9 @@ def compute_stats(
             if parent_id:
                 t_row = cur.execute(
                     "SELECT COUNT(*) AS cnt FROM messages "
-                    "WHERE session_id = ? AND role = 'assistant' AND timestamp >= ?",
-                    (parent_id, srow["started_at"] or 0),
+                    "WHERE session_id = ? AND role = 'assistant' "
+                    "AND id > COALESCE((SELECT MAX(id) FROM messages WHERE session_id = ?), 0)",
+                    (parent_id, sid),
                 ).fetchone()
                 remaining_turns = max(1, int(t_row["cnt"] if t_row else 1))
 
@@ -149,12 +154,15 @@ def compute_stats(
         # 2. Back-Door Janitor: pruned tool outputs in active session + overall
         def _janitor_for_scope(target_sid: str | None) -> dict[str, int]:
             q = (
-                "SELECT id, session_id, tool_name, content FROM messages "
-                "WHERE role = 'tool' AND content LIKE '[%chars)%'"
+                "SELECT m.id, m.session_id, m.tool_name, m.content, "
+                "(SELECT COUNT(*) FROM messages m2 "
+                " WHERE m2.session_id = m.session_id AND m2.role = 'assistant' AND m2.id > m.id) AS turns_after "
+                "FROM messages m "
+                "WHERE m.role = 'tool' AND m.content LIKE '[%chars%'"
             )
             params: tuple[Any, ...] = ()
             if target_sid:
-                q += " AND session_id = ?"
+                q += " AND m.session_id = ?"
                 params = (target_sid,)
             rows = cur.execute(q, params).fetchall()
 
@@ -162,7 +170,6 @@ def compute_stats(
             reclaimed_tokens = 0
             snowball_avoided = 0
 
-            # Pre-fetch max/subsequent assistant counts per session only when needed
             for r in rows:
                 c = r["content"] or ""
                 if not c.startswith("[") or (len(c) >= 600 and "[SKILL_PRUNED:" not in c):
@@ -170,23 +177,17 @@ def compute_stats(
                 m = _PRUNED_CHARS_RE.search(c)
                 if not m:
                     continue
-                orig_chars = int(m.group(1).replace(",", ""))
+                raw_num = m.group(1) or m.group(2)
+                if not raw_num:
+                    continue
+                orig_chars = int(raw_num.replace(",", ""))
                 stub_chars = len(c)
                 if orig_chars <= stub_chars:
                     continue
                 reclaimed = (orig_chars - stub_chars) // 4
                 pruned_calls += 1
                 reclaimed_tokens += reclaimed
-
-                if target_sid:
-                    after_row = cur.execute(
-                        "SELECT COUNT(*) AS cnt FROM messages "
-                        "WHERE session_id = ? AND role = 'assistant' AND id > ?",
-                        (r["session_id"], r["id"]),
-                    ).fetchone()
-                    turns_after = max(1, int(after_row["cnt"] if after_row else 1))
-                else:
-                    turns_after = 10  # conservative multi-turn average for historical rows
+                turns_after = max(1, int(r["turns_after"] or 1))
                 snowball_avoided += reclaimed * turns_after
 
             return {

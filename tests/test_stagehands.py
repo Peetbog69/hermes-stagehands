@@ -29,11 +29,11 @@ from provider import DEFAULT_WORKERS, StagehandsProvider  # noqa: E402
 
 WORKERS = ["scout", "librarian", "code_monkey", "adversary", "briefer"]
 EXPECTED_ROUTES = [
-    ("scout", "deepseek/deepseek-v4-flash", "low", 800),
-    ("librarian", "qwen/qwen3.7-flash", "low", 1000),
-    ("code_monkey", "deepseek/deepseek-v4.1-flash", "low", 1500),
-    ("adversary", "anthropic/claude-haiku-5.5", "medium", 1200),
-    ("briefer", "deepseek/deepseek-v4-flash", "low", 600),
+    ("scout", "deepseek/deepseek-v4-flash", "low", 4096),
+    ("librarian", "qwen/qwen3.7-flash", "low", 4096),
+    ("code_monkey", "deepseek/deepseek-v4.1-flash", "low", 4096),
+    ("adversary", "anthropic/claude-haiku-5.5", "medium", 4096),
+    ("briefer", "deepseek/deepseek-v4-flash", "low", 4096),
 ]
 
 
@@ -86,15 +86,23 @@ class TestStagehandsProvider(unittest.TestCase):
                     route,
                     {
                         "model": model,
-                        "provider": "nous",
                         "reasoning_effort": effort,
                         "request_overrides": {"max_tokens": budget},
                         "label": worker,
                     },
                 )
                 self.assertTrue(set(route) <= set(ROUTE_KEYS))
+                self.assertNotIn("provider", route)
                 self.assertNotIn("service_tier", route)
                 self.assertNotIn("desc", route)
+
+    def test_worker_inherits_delegation_provider_when_set(self):
+        route = self.provider.route_task(
+            {"goal": "Read logs", "worker": "scout"},
+            {"provider": "openrouter"},
+        )
+        self.assertEqual(route["provider"], "openrouter")
+        self.assertEqual(route["model"], "deepseek/deepseek-v4-flash")
 
     def test_parent_fast_tier_is_not_inherited_by_workers(self):
         for backend in ("nous", "openrouter"):
@@ -185,7 +193,7 @@ class TestStagehandsProvider(unittest.TestCase):
         )
         route = self.provider.route_task({"worker": "scout"}, config)
         self.assertEqual(route["model"], "custom/m")
-        self.assertEqual(route["request_overrides"], {"max_tokens": 800})
+        self.assertEqual(route["request_overrides"], {"max_tokens": 4096})
         self.assertNotIn("name", route)
         with self.assertRaises(DelegationRouteError):
             self.provider.route_task({"worker": "librarian"}, config)
@@ -239,15 +247,17 @@ class TestStagehandsProvider(unittest.TestCase):
         default_route = self.provider.route_task({"worker": "scout"}, {})
         default_route["request_overrides"]["max_tokens"] = 1
         self.assertEqual(
-            DEFAULT_WORKERS["scout"]["request_overrides"]["max_tokens"], 800
+            DEFAULT_WORKERS["scout"]["request_overrides"]["max_tokens"], 4096
         )
 
     def test_register_wires_provider_and_slash_command(self):
+        import asyncio
         import __init__ as stagehands_pkg
 
         providers = []
         commands = {}
         calls = []
+        context_refs = []
 
         class StubBackends:
             def set_global_backend(self, name, *, session_key="", apply_now=False):
@@ -262,10 +272,15 @@ class TestStagehandsProvider(unittest.TestCase):
             def register_command(self, name, handler, **kwargs):
                 commands[name] = (handler, kwargs)
 
+            def register_context_reference(self, ref):
+                context_refs.append(ref)
+
         stagehands_pkg.register(StubCtx())
         self.assertEqual(len(providers), 1)
         self.assertEqual(providers[0].name, "stagehands")
         self.assertIn("stagehands", commands)
+        self.assertEqual(len(context_refs), 1)
+        self.assertEqual(context_refs[0].prefix, "stagehands")
 
         handler, _ = commands["stagehands"]
         roster_text = handler("")
@@ -278,6 +293,33 @@ class TestStagehandsProvider(unittest.TestCase):
 
         stats_text = handler("stats")
         self.assertIn("Stagehands", stats_text)
+
+        # Test turnkey /stagehands doctor and /stagehands janitor against a temp config.yaml
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg_file = Path(tmpdir) / "config.yaml"
+            cfg_file.write_text("delegation:\n  backend: default\n", encoding="utf-8")
+
+            doc_warn = handler("doctor", config_path=cfg_file)
+            self.assertIn("[WARN] Door #1", doc_warn)
+            self.assertIn("[WARN] Door #2a", doc_warn)
+
+            jan_out = handler("janitor", config_path=cfg_file)
+            self.assertIn("proactive_prune_tokens=48000", jan_out)
+            self.assertIn("threshold_tokens=120000", jan_out)
+
+            # Simulate /stagehands on setting backend: stagehands
+            cfg_file.write_text(
+                cfg_file.read_text(encoding="utf-8").replace("backend: default", "backend: stagehands"),
+                encoding="utf-8",
+            )
+            doc_pass = handler("doctor", config_path=cfg_file)
+            self.assertIn("[PASS] Door #1", doc_pass)
+            self.assertIn("[PASS] Door #2a", doc_pass)
+            self.assertIn("BOTH DOORS ARMED AND HEALTHY", doc_pass)
+
+        # Test @stagehands:roster context reference expansion
+        expanded_roster = asyncio.run(context_refs[0].expand("roster"))
+        self.assertIn("Backstage Worker Roster", expanded_roster)
 
 
 class TestSqlTrapsRegression(unittest.TestCase):
@@ -395,6 +437,42 @@ class TestSqlTrapsRegression(unittest.TestCase):
         out = self._run()
         self.assertEqual(out["active_session"]["id"], self.PARENT)
         self.assertEqual(out["active_session"]["source"], "telegram")
+
+    def test_janitor_counts_both_proactive_and_compaction_demoted_stubs(self):
+        import sqlite3
+
+        conn = sqlite3.connect(self.db_path)
+        mcols = "session_id, role, content, tool_name, timestamp"
+        conn.execute(
+            f"INSERT INTO messages ({mcols}) VALUES (?,?,?,?,?)",
+            (
+                self.PARENT,
+                "tool",
+                "[read_file] read /tmp/big.py from line 1 (20,000 chars)",
+                "read_file",
+                1003.0,
+            ),
+        )
+        conn.execute(
+            f"INSERT INTO messages ({mcols}) VALUES (?,?,?,?,?)",
+            (
+                self.PARENT,
+                "tool",
+                "[read_file output demoted at compaction — 16,000 chars preserved in session history.]",
+                "read_file",
+                1003.1,
+            ),
+        )
+        conn.execute(
+            f"INSERT INTO messages ({mcols}) VALUES (?,?,?,?,?)",
+            (self.PARENT, "assistant", "Done.", None, 1003.2),
+        )
+        conn.commit()
+        conn.close()
+
+        jan = self._run()["janitor_active_session"]
+        self.assertEqual(jan["pruned_calls"], 2)
+        self.assertGreater(jan["reclaimed_tokens"], 8000)
 
 
 if __name__ == "__main__":

@@ -59,15 +59,15 @@ Hermes supplies subagent isolation and dispatch. Stagehands supplies the typed `
 
 ## Meet the five workers
 
-All defaults use provider **`nous`**. No worker injects a default `service_tier`.
+When `provider` is not pinned on a worker or in `delegation.provider`, workers automatically inherit the parent session's active provider (`nous`, `openrouter`, etc.) and re-derive the matching API mode. No worker injects a default `service_tier`. Each worker sets `request_overrides.max_tokens: 4096` so internal reasoning tokens (`reasoning_tokens`) and multi-step tool calls never hit premature API truncation (`finish_reason: length`), while the worker's prompt enforces a strict word-count brief ceiling.
 
-| Worker | Default model | Reasoning effort | `max_tokens` cap | Backstage job |
-| :--- | :--- | :--- | ---: | :--- |
-| `scout` | `deepseek/deepseek-v4-flash` | `low` | 800 | Read logs, files, and URLs; extract signal into ≤300 words. |
-| `librarian` | `qwen/qwen3.7-flash` | `low` | 1,000 | Search documentation and code; return cited excerpts. |
-| `code_monkey` | `deepseek/deepseek-v4.1-flash` | `low` | 1,500 | Investigate repo greps, test failures, and root-cause diffs. |
-| `adversary` | `anthropic/claude-haiku-5.5` | `medium` | 1,200 | Audit edge cases, race conditions, and security holes. |
-| `briefer` | `deepseek/deepseek-v4-flash` | `low` | 600 | Turn bulky JSON and payloads into executive briefs of ≤250 words. |
+| Worker | Default model | Reasoning effort | Turn ceiling (`max_tokens`) | Brief target | Backstage job |
+| :--- | :--- | :--- | ---: | ---: | :--- |
+| `scout` | `deepseek/deepseek-v4-flash` | `low` | 4,096 | ≤300 words | Read logs, files, and URLs; extract signal into ≤300 words. |
+| `librarian` | `qwen/qwen3.7-flash` | `low` | 4,096 | ≤350 words | Search documentation and code; return cited excerpts. |
+| `code_monkey` | `deepseek/deepseek-v4.1-flash` | `low` | 4,096 | ≤400 words | Investigate repo greps, test failures, and root-cause diffs. |
+| `adversary` | `anthropic/claude-haiku-5.5` | `medium` | 4,096 | ≤350 words | Audit edge cases, race conditions, and security holes. |
+| `briefer` | `deepseek/deepseek-v4-flash` | `low` | 4,096 | ≤250 words | Turn bulky JSON and payloads into executive briefs of ≤250 words. |
 
 For example, a delegated task selects its route with:
 
@@ -75,7 +75,7 @@ For example, a delegated task selects its route with:
 {"goal": "Inspect the log file and return incidents with line references in <=300 words.", "worker": "scout"}
 ```
 
-The route carries `label: "scout"` and `request_overrides: {"max_tokens": 800}` alongside its model, provider, and reasoning effort.
+The route carries `label: "scout"` and `request_overrides: {"max_tokens": 4096}` alongside its model and reasoning effort.
 
 ## Audited benchmark matrix
 
@@ -129,12 +129,33 @@ hermes config set delegation.backend stagehands
 Use your checkout's absolute path if it differs. In an active Hermes conversation (CLI, TUI, Desktop, or Telegram), inspect the roster or switch immediately with the plugin's built-in `/stagehands` slash command:
 
 ```text
-/stagehands
-/stagehands --now
-/stagehands stats
+/stagehands                     # Show backstage worker roster & routes
+/stagehands doctor              # Audit Door #1 (Stagehands) + Door #2 (48k/120k Janitor)
+/stagehands janitor             # Apply recommended 48k/120k Back-Door Janitor settings
+/stagehands on --janitor --now  # Turnkey: activate both doors immediately in this chat
+/stagehands stats               # Live Front-Door + Back-Door token & USD savings from state.db
+```
+
+You can also expand live telemetry or health status inline inside any prompt using the `@stagehands:` context reference provider:
+
+```text
+@stagehands:stats
+@stagehands:doctor
+@stagehands:roster
 ```
 
 The built-in roster needs no worker configuration. Keep the primary conversational model as your Sovereign and select a `worker` when delegating noisy tasks.
+
+### Prior Art & Ecosystem Comparison
+
+| System / Plugin | Typed Backstage Worker Routing (Front Door) | 48k/120k Context Sanitation (Back Door) | Live SQLite Savings Audit Ledger (`/stagehands stats`) | Zero Core Monkey-Patching |
+| :--- | :---: | :---: | :---: | :---: |
+| **`hermes-stagehands` (Ours)** | **✅ 5 typed workers (`DelegationProvider`)** | **✅ Turnkey `/stagehands janitor` (`48k/120k`)** | **✅ Read-only `state.db` + `FORM SH-022.5`** | **✅ Pure v0.22.5 plugin seams** |
+| `advanced-delegation` (Hermes official) | ✅ Route/profile selection | ❌ None | ❌ None | ✅ |
+| `tameru` (`0xWhiteMage`, catalog) | ❌ None | ✅ Subclasses `ContextCompressor` | ❌ None | ⚠️ Overrides private compressor methods |
+| `llmslim` (PR #142212, catalog) | ❌ None | ⚠️ Compresses message text | ❌ None | ✅ (`ContextEngine`) |
+| `eas4ai/hermes-context-manager` | ❌ None | ✅ Stale tool-output pruning | ❌ None | ✅ |
+| Claude Code Subagents / OpenCode DCP | ⚠️ Untyped subagents / DCP only | ⚠️ Single-door only | ❌ No SQLite USD ledger | N/A |
 
 ### Two-Door Sanitation for Bot Mode "Forever-Chats"
 
