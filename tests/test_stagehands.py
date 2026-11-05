@@ -8,6 +8,7 @@ or:
 """
 
 from copy import deepcopy
+import tempfile
 from pathlib import Path
 import sys
 import unittest
@@ -274,6 +275,126 @@ class TestStagehandsProvider(unittest.TestCase):
         now_text = handler("--now", session_key="tg_123")
         self.assertIn("applied to this chat", now_text)
         self.assertEqual(calls[-1], ("stagehands", "tg_123", True))
+
+        stats_text = handler("stats")
+        self.assertIn("Stagehands", stats_text)
+
+
+class TestSqlTrapsRegression(unittest.TestCase):
+    """SQL Trap A & B regression tests (BRUTALIST_SCOREBOARD_SPEC.md).
+
+    Trap A: the Front-Door Bouncer must count ONLY real Stagehands subagents --
+        ``source = 'subagent'`` OR ``model_config._delegate_from`` non-null --
+        and must NOT be fooled by unrelated lineage rows (``/new``, ``/branch``,
+        compactions) that share ``parent_session_id``.
+
+    Trap B: sovereign-only cost must SUBTRACT rolled-up child cost
+        (``_rollup_children_cost`` folds children into the parent's
+        ``estimated_cost_usd``), never double-count it.
+    """
+
+    PARENT = "sess_parent"
+    PARENT_COST = 10.00
+    SUB = "sess_subagent"
+    SUB_COST = 2.50
+
+    def setUp(self):
+        import sqlite3
+
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.tmp.name) / "state.db"
+        conn = sqlite3.connect(self.db_path)
+        conn.executescript(
+            """
+            CREATE TABLE sessions (
+                id TEXT PRIMARY KEY, source TEXT, model TEXT, model_config TEXT,
+                parent_session_id TEXT, started_at REAL, input_tokens INTEGER,
+                output_tokens INTEGER, message_count INTEGER, tool_call_count INTEGER,
+                api_call_count INTEGER, estimated_cost_usd REAL
+            );
+            CREATE TABLE messages (
+                id INTEGER PRIMARY KEY, session_id TEXT, role TEXT, content TEXT,
+                tool_name TEXT, timestamp REAL
+            );
+            """
+        )
+        cols = "id, source, model, model_config, parent_session_id, started_at, input_tokens, output_tokens, message_count, tool_call_count, api_call_count, estimated_cost_usd"
+        vals = "?,?,?,?,?,?,?,?,?,?,?,?"
+        # Parent (sovereign). estimated_cost_usd already folds in children cost.
+        conn.execute(
+            f"INSERT INTO sessions ({cols}) VALUES ({vals})",
+            (self.PARENT, "telegram", "google/gemini-4-argon", None, None,
+             1000.0, 500000, 2000, 120, 30, 12, self.PARENT_COST),
+        )
+        # Real subagent child (MUST be counted by Trap A).
+        conn.execute(
+            f"INSERT INTO sessions ({cols}) VALUES ({vals})",
+            (self.SUB, "subagent", "deepseek/deepseek-v4.1-flash",
+             '{"_delegate_from": "scout"}', self.PARENT,
+             1001.0, 40000, 500, 8, 4, 3, self.SUB_COST),
+        )
+        # DECOY lineage row: shares parent_session_id but is a /branch, NOT a
+        # subagent. Trap A must EXCLUDE it.
+        conn.execute(
+            f"INSERT INTO sessions ({cols}) VALUES ({vals})",
+            ("sess_branch", "telegram", "google/gemini-4-argon",
+             '{"branch_of": "sess_parent"}', self.PARENT,
+             1002.0, 300000, 1000, 70, 20, 9, 5.00),
+        )
+        mcols = "session_id, role, content, tool_name, timestamp"
+        # Real subagent: bulky raw tool dump -> compact brief.
+        raw = "[tool] " + ("x" * 40000) + "\n(40000 chars)"
+        conn.execute(
+            f"INSERT INTO messages ({mcols}) VALUES (?,?,?,?,?)",
+            (self.SUB, "tool", raw, "terminal", 1001.1),
+        )
+        conn.execute(
+            f"INSERT INTO messages ({mcols}) VALUES (?,?,?,?,?)",
+            (self.SUB, "assistant", "brief" * 100, None, 1001.2),
+        )
+        # Decoy tool message under the branch row: must NOT inflate counts.
+        conn.execute(
+            f"INSERT INTO messages ({mcols}) VALUES (?,?,?,?,?)",
+            ("sess_branch", "tool", "[tool] " + ("y" * 30000), "terminal", 1002.1),
+        )
+        conn.commit()
+        conn.close()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _run(self):
+        import stats
+
+        return stats.compute_savings(self.PARENT, db_path=self.db_path)
+
+    def test_trap_a_subagent_filter_excludes_branch_lineage(self):
+        fd = self._run()["front_door"]
+        # Exactly ONE real subagent; the /branch decoy is excluded.
+        self.assertEqual(fd["subagent_runs"], 1)
+        # Raw tokens come only from the real subagent's dump -- len("[tool] " +
+        # "x"*40000 + "\n(40000 chars)") == 40021, //4 == 10005 -- never the
+        # branch's 30000-char dump.
+        self.assertEqual(fd["backstage_raw_tokens"], 10005)
+        self.assertGreater(fd["returned_brief_tokens"], 0)
+        self.assertLess(fd["returned_brief_tokens"], fd["backstage_raw_tokens"])
+
+    def test_trap_b_sovereign_cost_subtracts_children(self):
+        fd = self._run()["front_door"]
+        # children_cost_usd is the real subagent's cost only (Trap A scope).
+        self.assertAlmostEqual(fd["children_cost_usd"], self.SUB_COST, places=4)
+        # Sovereign-only cost == parent total minus rolled-in children cost.
+        self.assertAlmostEqual(
+            fd["sovereign_only_cost_usd"], self.PARENT_COST - self.SUB_COST, places=4
+        )
+        self.assertNotAlmostEqual(
+            fd["sovereign_only_cost_usd"], self.PARENT_COST, places=4
+        )
+
+    def test_trap_a_b_parent_session_is_resolved_sovereign(self):
+        out = self._run()
+        self.assertEqual(out["active_session"]["id"], self.PARENT)
+        self.assertEqual(out["active_session"]["source"], "telegram")
 
 
 if __name__ == "__main__":

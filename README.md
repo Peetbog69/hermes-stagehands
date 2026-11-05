@@ -131,9 +131,27 @@ Use your checkout's absolute path if it differs. In an active Hermes conversatio
 ```text
 /stagehands
 /stagehands --now
+/stagehands stats
 ```
 
 The built-in roster needs no worker configuration. Keep the primary conversational model as your Sovereign and select a `worker` when delegating noisy tasks.
+
+### Two-Door Sanitation for Bot Mode "Forever-Chats"
+
+In [Hermes Bot Mode](https://hermes-agent.nousresearch.com/docs/user-guide/bot-mode), persistent bots (`SOUL.md` + `MEMORY.md`) live inside a continuous "forever-chat" where `/new` is intercepted into in-place `/compact`. Pairing `hermes-stagehands` (the **Front-Door Bouncer**) with Hermes v0.22.5's deterministic pruner (the **Back-Door Janitor**) keeps a forever-chat running on a frontier voice without context choke:
+
+```yaml
+delegation:
+  backend: stagehands
+
+compression:
+  in_place: true
+  proactive_prune_tokens: 48000   # Sweeps >8KB tool/skill dumps once; +48k regrowth runway
+  threshold_tokens: 120000        # Hard in-place compaction ceiling (preserves session_id)
+  protect_last_n: 20              # Keeps active tail untouched across compactions
+```
+
+Use `/stagehands stats` (or `python3 stats.py --save bench/live_stats.json`) to inspect both rows directly from `state.db` and open the Government Paperwork Brutalist audit ledger at `bench/scoreboard.html`.
 
 ### Optional `config.yaml` overrides
 

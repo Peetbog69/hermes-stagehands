@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="manila">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FORM SH-022.5 // PUBLIC TOKEN AUDIT &amp; CONTINUITY LEDGER</title>
+<style>
+:root{
+  --bond:#F3EFE6; --ink:#111111; --cell:#EAE4D6; --stamp:#B81D13;
+  --frame:2px solid #111111; --rule:1px solid #111111;
+}
+html[data-theme="microfiche"]{
+  --bond:#0D1117; --ink:#E6EDF3; --cell:#161B22; --stamp:#FFB000;
+  --frame:2px solid #E6EDF3; --rule:1px solid #E6EDF3;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bond);color:var(--ink);
+  font-family:'IBM Plex Mono','JetBrains Mono','SFMono-Regular',Consolas,monospace;
+  font-size:13px;line-height:1.45;
+  background-image:repeating-linear-gradient(0deg,transparent 0 27px,rgba(17,17,17,.06) 27px 28px);
+  padding:18px 14px 90px;
+}
+html[data-theme="microfiche"] body{
+  background-image:repeating-linear-gradient(0deg,transparent 0 27px,rgba(230,237,243,.05) 27px 28px);
+}
+h1,h2,h3,.grotesque{font-family:'Arial Narrow','Helvetica Neue',Impact,sans-serif;letter-spacing:.02em}
+.sheet{max-width:1080px;margin:0 auto}
+section{
+  border:var(--frame);background:var(--bond);margin:0 0 26px;padding:0 0 16px;
+  box-shadow:4px 4px 0 var(--ink);position:relative;
+}
+section>h2{
+  margin:0;padding:8px 12px;border-bottom:var(--frame);background:var(--cell);
+  font-size:15px;text-transform:uppercase;letter-spacing:.12em;
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+section .body{padding:14px 16px 4px}
+.perf{
+  height:12px;margin:0;border-bottom:var(--rule);
+  background-image:radial-gradient(circle,var(--ink) 1.6px,transparent 1.8px);
+  background-size:22px 12px;background-position:6px 5px;background-repeat:repeat-x;opacity:.55;
+}
+table{width:100%;border-collapse:collapse;margin:10px 0}
+th,td{border:var(--rule);padding:5px 8px;text-align:left;vertical-align:top;font-size:12px}
+th{background:var(--cell);text-transform:uppercase;letter-spacing:.06em;font-size:11px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.meta-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:var(--rule)}
+.meta-grid div{border:var(--rule);padding:8px 10px;min-width:0;overflow-wrap:anywhere;word-break:break-word}
+.meta-grid .k{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.14em;opacity:.72;margin-bottom:3px}
+.formbox{display:inline-block;border:var(--frame);padding:6px 12px;font-weight:700;letter-spacing:.16em;box-shadow:3px 3px 0 var(--ink)}
+.stamp{
+  display:inline-block;border:3px double var(--stamp);color:var(--stamp);padding:5px 12px;
+  text-transform:uppercase;letter-spacing:.22em;font-weight:700;transform:rotate(-2.5deg);
+  margin:8px 6px 8px 0;font-size:11px;
+}
+.stamp.big{font-size:13px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0}
+.statbox{border:var(--frame);box-shadow:3px 3px 0 var(--ink);padding:10px 12px;background:var(--bond)}
+.statbox .big{font-size:28px;font-weight:700;display:block;font-family:'Arial Narrow','Helvetica Neue',Impact,sans-serif;margin-bottom:2px}
+.statbox .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;opacity:.82;display:block}
+.bar-row{display:grid;grid-template-columns:230px 1fr 74px;gap:8px;align-items:center;margin:6px 0;font-size:12px}
+.bar-track{display:block;border:var(--rule);height:18px;background:var(--cell);overflow:hidden}
+.bar-fill{display:block;height:100%;background:var(--ink)}
+html[data-theme="microfiche"] .bar-fill{background:var(--stamp)}
+.bar-pct{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.controls{
+  position:sticky;top:0;z-index:40;display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  border:var(--frame);background:var(--bond);box-shadow:4px 4px 0 var(--ink);padding:8px 12px;margin:0 0 22px;
+}
+button,.filelabel{
+  font-family:inherit;font-size:12px;background:var(--cell);color:var(--ink);border:var(--rule);
+  padding:6px 12px;cursor:pointer;text-transform:uppercase;letter-spacing:.08em;
+}
+button:hover,.filelabel:hover{background:var(--ink);color:var(--bond)}
+.muted{opacity:.7}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.two-col{grid-template-columns:1fr}.bar-row{grid-template-columns:130px 1fr 60px}}
+.diagram{border:var(--rule);padding:14px;background:var(--cell);position:relative;overflow:hidden}
+.door{border:var(--frame);padding:8px 10px;background:var(--bond);box-shadow:3px 3px 0 var(--ink);margin:6px 0}
+.door h4{margin:0 0 4px;text-transform:uppercase;letter-spacing:.1em;font-size:12px}
+.wire{height:22px;border-left:var(--rule);border-top:var(--rule);border-right:var(--rule);margin:2px 0 2px 24px;width:calc(100% - 48px)}
+.worker-row{display:grid;grid-template-columns:120px 1fr 90px 90px;gap:6px;font-size:11px;border-bottom:var(--rule);padding:3px 0}
+.worker-row:last-child{border-bottom:0}
+.worker-row .h{font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.modal{display:none;position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.55);align-items:center;justify-content:center}
+.modal.open{display:flex}
+.modal .card{border:var(--frame);background:var(--bond);box-shadow:6px 6px 0 var(--ink);max-width:640px;width:92%;padding:16px}
+textarea{width:100%;height:200px;font-family:inherit;font-size:12px;border:var(--rule);background:var(--cell);color:var(--ink);padding:8px}
+.lede{font-size:12px;margin:0 0 10px}
+kbd{border:var(--rule);padding:1px 5px;background:var(--cell);font-size:11px}
+</style>
+</head>
+<body>
+<div class="controls">
+  <span class="mono grotesque" style="font-weight:700;letter-spacing:.1em">FORM SH-022.5</span>
+  <span class="muted mono">REV. 2026-11-05</span>
+  <span style="flex:1"></span>
+  <button id="themeBtn" type="button">[PAPER STOCK: MANILA BOND &#8646; CARBON MICROFICHE]</button>
+  <label class="filelabel" for="fileInput">[LOAD LIVE_STATS.JSON]</label>
+  <input id="fileInput" type="file" accept=".json,application/json" style="display:none">
+  <button id="pasteBtn" type="button">[PASTE JSON]</button>
+</div>
+
+<div class="sheet">
+<section id="sec-header" data-section="1">
+  <h2><span><span class="secno">SECTION 1.</span> FORM HEADER &amp; OFFICIAL FILING METADATA</span><span class="mono">FORM SH-022.5 (REV. 2026-11-05)</span></h2>
+  <div class="perf"></div>
+  <div class="body">
+    <div class="formbox">FORM SH-022.5</div>
+    <div class="mono grotesque" style="font-size:19px;font-weight:700;letter-spacing:.06em;margin:12px 0 2px">
+      AMPERSAND FLEET OPERATIONS // DEPT. OF CONTEXT SANITATION &amp; BACKSTAGE LABOR
+    </div>
+    <div class="grotesque" style="font-size:15px;margin:2px 0 12px">
+      PUBLIC TOKEN AUDIT &amp; CONTINUITY LEDGER &mdash; SOVEREIGN &amp; STAGEHANDS (HERMES v0.22.5)
+    </div>
+    <div class="meta-grid">
+      <div><span class="k">Filing Date</span><span class="mono">2026-11-05</span></div>
+      <div><span class="k">Inspector</span><span class="mono">R. FLEET / NIMBO-01</span></div>
+      <div><span class="k">Ledger DB</span><span class="mono" id="hdrDbPath">/root/.hermes/profiles/nimbo/state.db</span></div>
+      <div><span class="k">Repository</span><span class="mono">github.com/Peetbog69/hermes-stagehands</span></div>
+      <div><span class="k">Spec</span><span class="mono">bench/BRUTALIST_SCOREBOARD_SPEC.md</span></div>
+      <div><span class="k">Engine Policy</span><span class="mono">48k pruner + 120k in-place compactor</span></div>
+    </div>
+    <div style="margin-top:12px">
+      <span class="stamp big">[APPROVED FOR FRONTSTAGE DEPLOYMENT]</span>
+    </div>
+    <p class="lede" style="margin-top:10px">
+      This ledger is a self-contained <strong>monitor / audit</strong> instrument. No external fonts, scripts, or links are
+      referenced; the entire document executes offline. Load an exported <span class="mono">live_stats.json</span> above to
+      recompute Exhibit D dynamically.
+    </p>
+  </div>
+</section>
+<section id="sec-exhibit-a" data-section="2">
+  <h2><span><span class="secno">SECTION 2.</span> EXHIBIT A: CITIZEN CONTINUITY RECORD</span><span class="mono">CASE NO. ROB-2026-0527</span></h2>
+  <div class="perf"></div>
+  <div class="body">
+    <table>
+      <tr><th style="width:250px">Subject</th><td class="mono">Melissa M. &amp; Companion Profile <strong>robert</strong></td></tr>
+      <tr><th>Node / Instance</th><td class="mono">vultr-1</td></tr>
+      <tr><th>Active Since</th><td class="mono">2026-05-27 09:45:56</td></tr>
+      <tr><th>Frontstage Soul</th><td class="mono">gemini-4-argon (gravel delegated backstage)</td></tr>
+    </table>
+    <div class="stat-grid">
+      <div class="statbox"><span class="big">302</span><span class="lbl">Real Customer Sessions <span class="mono">(WHERE source != 'subagent')</span></span></div>
+      <div class="statbox"><span class="big">10,354</span><span class="lbl">Real Messages Exchanged</span></div>
+      <div class="statbox"><span class="big">3,302</span><span class="lbl">Tool Invocations Executed</span></div>
+      <div class="statbox"><span class="big">0</span><span class="lbl">Personality Downgrades Permitted</span></div>
+    </div>
+    <p class="lede mono" style="margin-top:8px">
+      &ldquo;Keep the frontstage soul on Gemini-4-Argon. Move the gravel backstage.&rdquo;
+    </p>
+  </div>
+</section>
+<section id="sec-exhibit-b" data-section="3">
+  <h2><span><span class="secno">SECTION 3.</span> EXHIBIT B: THE &ldquo;AUDI HAULING GRAVEL&rdquo; INDICTMENT</span><span class="mono">12-DAY PRODUCTION AUDIT</span></h2>
+  <div class="perf"></div>
+  <div class="body">
+    <p class="lede">Raw tool output vs. compounded frontier re-reads across <strong>13</strong> sessions (<strong>2,303</strong> API calls).</p>
+    <table>
+      <thead><tr><th>Accounting Line</th><th class="num">Tokens</th><th>Turn Multiplier</th></tr></thead>
+      <tbody>
+        <tr><td>Raw Tool Tokens Ingested</td><td class="num">2,571,941</td><td class="mono">~1 turn cost</td></tr>
+        <tr><td>Compounded Argon Input Billed</td><td class="num">230,842,110</td><td class="mono">~90x turn-over-turn snowball</td></tr>
+        <tr><td>Share of Tool Payload Backstage-Delegable</td><td class="num">95.5%</td><td class="mono">mechanical gravel</td></tr>
+      </tbody>
+    </table>
+    <span class="stamp">[INDICTMENT: 95.5% MECHANICAL GRAVEL]</span>
+    <div class="bar-wrap">
+      <div class="bar-row"><span>terminal (SSH/CLI/build logs)</span><span class="bar-track"><span class="bar-fill" style="width:38.2%"></span></span><span class="bar-pct">38.2%</span></div>
+      <div class="bar-row"><span>web_extract / web_search</span><span class="bar-track"><span class="bar-fill" style="width:24.6%"></span></span><span class="bar-pct">24.6%</span></div>
+      <div class="bar-row"><span>read_file / search_files</span><span class="bar-track"><span class="bar-fill" style="width:19.4%"></span></span><span class="bar-pct">19.4%</span></div>
+      <div class="bar-row"><span>skill_view / session_search</span><span class="bar-track"><span class="bar-fill" style="width:13.3%"></span></span><span class="bar-pct">13.3%</span></div>
+      <div class="bar-row"><span>Direct User-Facing Action</span><span class="bar-track"><span class="bar-fill" style="width:4.5%"></span></span><span class="bar-pct">4.5%</span></div>
+    </div>
+    <table>
+      <thead><tr><th>Tool Family</th><th class="num">% of Raw Payload</th><th>Routing Destination</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">terminal</td><td class="num">38.2%</td><td class="mono">code_monkey / scout</td></tr>
+        <tr><td class="mono">web_extract / web_search</td><td class="num">24.6%</td><td class="mono">librarian</td></tr>
+        <tr><td class="mono">read_file / search_files</td><td class="num">19.4%</td><td class="mono">scout / code_monkey</td></tr>
+        <tr><td class="mono">skill_view / session_search</td><td class="num">13.3%</td><td class="mono">briefer + 48k Janitor</td></tr>
+        <tr><td class="mono">tts / vision / memory</td><td class="num">4.5%</td><td class="mono">Kept on Sovereign (gemini-4-argon)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<section id="sec-exhibit-c" data-section="4">
+  <h2><span><span class="secno">SECTION 4.</span> EXHIBIT C: TWO-DOOR SANITATION SCHEMATIC</span><span class="mono">BOT MODE &times; STAGEHANDS &times; 48K JANITOR</span></h2>
+  <div class="perf"></div>
+  <div class="body">
+    <div class="two-col">
+      <div class="diagram">
+        <div class="door">
+          <h4>FRONT DOOR &mdash; delegation.backend: stagehands</h4>
+          <div class="muted" style="font-size:11px">5 stateless, fail-closed workers on $0.15/M flash models. Raw tool dumps die with the ephemeral subagent; only the bounded brief enters the Bot Mode forever-chat.</div>
+          <div class="wire"></div>
+          <div class="worker-row h"><span>worker</span><span>model</span><span>budget</span><span>effort</span></div>
+          <div class="worker-row"><span>scout</span><span class="mono">deepseek-v4-flash</span><span>800 tok</span><span>low</span></div>
+          <div class="worker-row"><span>librarian</span><span class="mono">qwen3.7-flash</span><span>1000 tok</span><span>low</span></div>
+          <div class="worker-row"><span>code_monkey</span><span class="mono">deepseek-v4.1-flash</span><span>1500 tok</span><span>low</span></div>
+          <div class="worker-row"><span>briefer</span><span class="mono">deepseek-v4-flash</span><span>600 tok</span><span>low</span></div>
+          <div class="worker-row"><span>adversary</span><span class="mono">claude-haiku-5.5</span><span>1200 tok</span><span>medium</span></div>
+        </div>
+      </div>
+      <div class="diagram">
+        <div class="door">
+          <h4>BACK DOOR &mdash; Deterministic Engine Policy (compression:)</h4>
+          <div class="wire"></div>
+          <table style="margin:4px 0">
+            <tbody>
+              <tr><th class="mono">proactive_prune_tokens</th><td class="num">48000</td></tr>
+              <tr><th class="mono">_proactive_prune_rearm_tokens</th><td class="num">+48k cache runway</td></tr>
+              <tr><th class="mono">threshold_tokens</th><td class="num">120000</td></tr>
+              <tr><th class="mono">in_place</th><td class="num">true (preserves session_id)</td></tr>
+              <tr><th class="mono">protect_last_n</th><td class="num">20</td></tr>
+            </tbody>
+          </table>
+          <div class="muted" style="font-size:11px">Prunes bulky tool dumps deterministically to <span class="mono">[tool] ... (N chars)</span> stubs and compacts older turns in place without changing the session id.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="sec-exhibit-d" data-section="5">
+  <h2><span><span class="secno">SECTION 5.</span> EXHIBIT D: LIVE GUINEA-PIG TELEMETRY RECEIPT</span><span class="mono">SESSION <span id="dSession">20261105_055550_0ca572b8</span></span></h2>
+  <div class="perf"></div>
+  <div class="body">
+    <p class="lede">Two distinct accounting rows (per MoA Council Ruling <strong>D5</strong> &mdash; no double-counting).</p>
+    <table>
+      <thead><tr><th colspan="2">ROW 1 &mdash; FRONT-DOOR INTERCEPTOR (STAGEHANDS SUBAGENTS)</th></tr></thead>
+      <tbody>
+        <tr><th class="mono">Subagent Runs</th><td class="num" id="dFrontRuns">1 (code_monkey / deepseek-v4.1-flash)</td></tr>
+        <tr><th class="mono">Backstage Raw Tokens Absorbed</th><td class="num" id="dFrontRaw">20,700</td></tr>
+        <tr><th class="mono">Returned Brief Tokens</th><td class="num" id="dFrontBrief">46</td></tr>
+        <tr><th class="mono">Compression Ratio</th><td class="num"><span id="dFrontRatio">450.0</span>x <span class="muted">(live delegation boundary reduction)</span></td></tr>
+        <tr><th class="mono">Children Cost (USD)</th><td class="num" id="dFrontChildrenCost">$0.0585</td></tr>
+        <tr><th class="mono">Sovereign-Only Cost (USD)</th><td class="num" id="dFrontSovOnly">$4.2781</td></tr>
+        <tr><th class="mono">Front-Door Snowball Tokens Dodged</th><td class="num" id="dFrontSnowball">82,616</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <thead><tr><th colspan="2">ROW 2 &mdash; BACK-DOOR CONTEXT JANITOR (48K PRUNER + 120K IN-PLACE COMPACTOR)</th></tr></thead>
+      <tbody>
+        <tr><th class="mono">Bulky Tool Dumps Pruned</th><td class="num" id="dJanPruned">9</td></tr>
+        <tr><th class="mono">Raw Tokens Reclaimed</th><td class="num" id="dJanReclaimed">46,536</td></tr>
+        <tr><th class="mono">Older Messages Compacted In-Place @ 120k</th><td class="num" id="dJanCompacted">69</td></tr>
+        <tr><th class="mono">Re-Read Tokens Dodged</th><td class="num" id="dJanDodged">4,067,026</td></tr>
+        <tr><th class="mono">USD Saved This Session @ $3.00/M Argon Input</th><td class="num" id="dJanSaved">$12.45</td></tr>
+      </tbody>
+    </table>
+    <div class="two-col">
+      <div>
+        <h3 class="grotesque" style="margin:6px 0 2px">FIELD CONTINUITY CERTIFICATION &mdash; CASE NO. JOCO-SURVEY-168</h3>
+        <span class="stamp">[CONTINUITY PASSED: 5/5 SURVEY LOTS RETAINED]</span>
+        <p class="lede mono" style="margin-top:6px">
+          <strong>168</strong> PNEZD stakeout points across Lots <strong>13, 22, 23, 34, 35</strong> remained 100% intact inside
+          <span class="mono">protect_last_n: 20</span> while <strong>69</strong> older turns were compacted in-place without
+          changing <span class="mono">session_id</span>.
+        </p>
+      </div>
+      <div>
+        <h3 class="grotesque" style="margin:6px 0 2px">SQLITE AUDIT INTEGRITY CERTIFICATIONS (ROBERT&rsquo;S TWO TRAPS)</h3>
+        <span class="stamp">[TRAP A CLEARED]</span>
+        <p class="lede mono">Subagent filter enforces <span class="mono">source = 'subagent' OR json_extract(model_config, '$._delegate_from') IS NOT NULL</span> (excludes <span class="mono">/new</span> and <span class="mono">/branch</span> lineage rows).</p>
+        <span class="stamp">[TRAP B CLEARED]</span>
+        <p class="lede mono">Sovereign cost subtracts <span class="mono">SUM(child.estimated_cost_usd)</span> rolled up by <span class="mono">delegate_tool_results.py</span>.</p>
+      </div>
+    </div>
+    <p class="lede muted" id="loadStatus" style="margin-top:10px">Telemetry loaded: bench/live_stats.json (2026-11-05 08:46).</p>
+  </div>
+</section>
+
+<div class="modal" id="pasteModal">
+  <div class="card">
+    <div class="grotesque" style="font-weight:700;font-size:14px;margin:0 0 8px">PASTE EXPORTED live_stats.json</div>
+    <textarea id="pasteArea" spellcheck="false" placeholder="{ ... }"></textarea>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button id="pasteApply" type="button">[APPLY]</button>
+      <button id="pasteClose" type="button">[CANCEL]</button>
+      <span class="muted" id="pasteErr" style="margin-left:auto;align-self:center"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  function $id(id) { return document.getElementById(id); }
+
+  function setText(id, value) {
+    var el = $id(id);
+    if (el) { el.textContent = value; }
+  }
+
+  function fmtInt(n) {
+    n = Number(n);
+    if (!isFinite(n)) { return "0"; }
+    return Math.round(n).toLocaleString("en-US");
+  }
+
+  function fmtUsd(n, places) {
+    n = Number(n);
+    if (!isFinite(n)) { n = 0; }
+    return "$" + n.toFixed(places);
+  }
+
+  function recalc(data) {
+    var s = data.active_session || {};
+    var fd = data.front_door || {};
+    var ja = data.janitor_active_session || {};
+    var jp = data.janitor_profile_total || {};
+
+    if (data.db_path) { setText("hdrDbPath", data.db_path); }
+    if (s.id) { setText("dSession", s.id); }
+
+    setText("dFrontRuns", fmtInt(fd.subagent_runs));
+    setText("dFrontRaw", fmtInt(fd.backstage_raw_tokens));
+    setText("dFrontBrief", fmtInt(fd.returned_brief_tokens));
+    var ratio = Number(fd.compression_ratio);
+    if (isFinite(ratio) && ratio > 0) { setText("dFrontRatio", ratio.toFixed(1)); }
+    setText("dFrontChildrenCost", fmtUsd(fd.children_cost_usd, 4));
+    setText("dFrontSovOnly", fmtUsd(fd.sovereign_only_cost_usd, 4));
+
+    setText("dJanPruned", fmtInt(ja.pruned_calls));
+    setText("dJanReclaimed", fmtInt(ja.reclaimed_tokens));
+    setText("dJanDodged", fmtInt(ja.snowball_avoided_tokens));
+    setText("dJanSaved", fmtUsd(data.active_estimated_saved_usd, 2));
+
+    var banner = $id("loadStatus");
+    if (banner) {
+      banner.textContent = "Telemetry recalculated from loaded JSON on " +
+        new Date().toISOString() + " | profile janitor dumps: " + fmtInt(jp.pruned_calls) +
+        " | profile lifetime saved: " + fmtUsd(data.profile_estimated_saved_usd, 2);
+    }
+  }
+
+  function ingest(text, source) {
+    var errEl = $id("pasteErr");
+    if (errEl) { errEl.textContent = ""; }
+    try {
+      var data = JSON.parse(text);
+      if (!data || typeof data !== "object") { throw new Error("not an object"); }
+      recalc(data);
+      return true;
+    } catch (e) {
+      if (errEl) { errEl.textContent = "PARSE ERROR: " + e.message; }
+      setText("loadStatus", "Load failed (" + source + "): " + e.message);
+      return false;
+    }
+  }
+
+  var themeBtn = $id("themeBtn");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", function () {
+      var root = document.documentElement;
+      var next = root.getAttribute("data-theme") === "manila" ? "microfiche" : "manila";
+      root.setAttribute("data-theme", next);
+      themeBtn.textContent = next === "manila"
+        ? "[PAPER STOCK: MANILA BOND \u21C6 CARBON MICROFICHE]"
+        : "[PAPER STOCK: CARBON MICROFICHE \u21C6 MANILA BOND]";
+    });
+  }
+
+  var fileInput = $id("fileInput");
+  if (fileInput) {
+    fileInput.addEventListener("change", function (ev) {
+      var f = ev.target.files && ev.target.files[0];
+      if (!f) { return; }
+      var reader = new FileReader();
+      reader.onload = function () { ingest(String(reader.result), "file picker"); };
+      reader.readAsText(f);
+    });
+  }
+
+  var modal = $id("pasteModal");
+  var pasteBtn = $id("pasteBtn");
+  var pasteClose = $id("pasteClose");
+  var pasteApply = $id("pasteApply");
+
+  if (pasteBtn) {
+    pasteBtn.addEventListener("click", function () {
+      if (modal) { modal.classList.add("open"); }
+    });
+  }
+  if (pasteClose) {
+    pasteClose.addEventListener("click", function () {
+      if (modal) { modal.classList.remove("open"); }
+    });
+  }
+  if (pasteApply) {
+    pasteApply.addEventListener("click", function () {
+      var area = $id("pasteArea");
+      if (area && ingest(area.value, "paste modal") && modal) {
+        modal.classList.remove("open");
+      }
+    });
+  }
+  if (modal) {
+    modal.addEventListener("click", function (ev) {
+      if (ev.target === modal) { modal.classList.remove("open"); }
+    });
+  }
+})();
+</script>
+</body>
+</html>
