@@ -102,13 +102,22 @@ The checked-in [benchmark report](bench/BENCHMARK_REPORT.md) and [machine-readab
 
 **Route version matters, too.** TASK-02's saved benchmark uses `deepseek/deepseek-v4-flash`; the current `code_monkey` default is `deepseek/deepseek-v4.1-flash`. The demo shows the current route live and preserves the historical replay's model and costs.
 
-### Live production case study (12 days on `google/gemini-4-argon`)
+### Live production case studies (`google/gemini-4-argon`)
 
-Beyond the synthetic suite above, we audited a live daily-driver Hermes v0.22.5 companion running **`google/gemini-4-argon`** over a 12-day production window (**2026-10-23 to 2026-11-04**, read-only from `state.db`):
+Beyond the synthetic suite above, we audited a live daily-driver Hermes companion running **`google/gemini-4-argon`** before and after deploying **Sovereign & Stagehands + the 48k/120k Back-Door Janitor**:
 
-- **2,303 Argon API calls** and **2,079 deduplicated tool calls** injected **10,296,604 characters (`~2,574,151` raw tokens)** of tool output straight into the parent Argon conversation windows.
-- Because every tool output stays in the parent transcript and is re-read on subsequent turns, those `2.57M` raw tool tokens compounded into **230,840,257 total Argon input tokens** (`53.28M` uncached + `177.56M` cache-read) against just `1.31M` output tokens (**176× more input read than output written**).
-- **95.5% of that raw tool-output volume (`2.46M / 2.57M` tokens)** came from four backstage-delegable lanes (`terminal` doc builds & CLI email, `web_extract`/`web_search`/`read_file`, `session_search`/`fact_store` hydrations, and procedural `skill_view` loads). Full audit: [`bench/PRODUCTION_CASE_STUDY.md`](bench/PRODUCTION_CASE_STUDY.md).
+1. **12-Day Pre-Stagehands Baseline (`2026-10-23` to `2026-11-04`, read-only from `state.db`):**
+   - **2,303 Argon API calls** and **2,079 deduplicated tool calls** injected **10,296,604 characters (`~2,574,151` raw tokens)** of tool output straight into parent Argon conversation windows.
+   - Because every tool output stays in the parent transcript and is re-read on subsequent turns, those `2.57M` raw tool tokens compounded into **230,840,257 total Argon input tokens** (`53.28M` uncached + `177.56M` cache-read) against just `1.31M` output tokens (**176× more input read than output written**).
+   - **95.5% of that raw tool-output volume (`2.46M / 2.57M` tokens)** came from four backstage-delegable lanes (`terminal` doc builds & CLI email, `web_extract`/`web_search`/`read_file`, `session_search`/`fact_store` hydrations, and procedural `skill_view` loads). Full audit: [`bench/PRODUCTION_CASE_STUDY.md`](bench/PRODUCTION_CASE_STUDY.md).
+2. **24-Hour Continuous “Forever-Chat” Marathon (`2026-11-05` to `2026-11-06`, session `20261105_055550_0ca572b8`):**
+   - Ran **24 hours and 15 minutes** in a single continuous Bot Mode session (**zero `/new` resets**, **365 Argon API calls**, **426 tool calls**).
+   - **Front-Door Bouncer (`StagehandsProvider`):** `6` backstage worker runs absorbed **`383,194` raw tokens** and returned **`3,834` brief tokens** to the Sovereign (**`99.9×` boundary compression**).
+   - **Back-Door Janitor (`48k/120k`):** Swept **`300` bulky parent tool dumps** into 1-line stubs (**`658,968` raw tokens reclaimed**).
+   - **Total Compounded Snowball Avoided:** **`484,424,625` re-read tokens dodged (`~$1,453.27` saved at `$3/M` Argon input)**.
+3. **Live Customer Night-One Stress Test (Production Profile “J”, `2026-11-05` to `2026-11-06`):**
+   - Initial turnkey migration swept a `682,384`-token multi-day thread down to `~67K` active tokens in place without losing recent conversation.
+   - Immediately afterward, the customer ran an overnight **61-call / 182-tool PDF & document build sprint** (`9:57 PM – 11:33 PM` + `4:06 AM`). The Back-Door Janitor pruned **`44` bulky PDF/tool outputs (`117,198` raw tokens, `11.48M` re-read tokens dodged)**, keeping actual Argon spend for the entire 61-call sprint at **`$6.24` vs `~$83.00` unpruned (`92.5%` real-dollar reduction)**.
 
 ## Built for Hermes v0.22.5: the four stitches
 
@@ -167,10 +176,13 @@ delegation:
 
 compression:
   in_place: true
-  proactive_prune_tokens: 48000   # Sweeps >8KB tool/skill dumps once; +48k regrowth runway
-  threshold_tokens: 120000        # Hard in-place compaction ceiling (preserves session_id)
-  protect_last_n: 20              # Keeps active tail untouched across compactions
+  proactive_prune_tokens: 48000       # Sweeps >8KB tool/skill dumps once; +48k regrowth runway
+  threshold_tokens: 120000            # Hard in-place compaction ceiling (preserves session_id)
+  protect_last_n: 20                  # Keeps active tail untouched across compactions
+  hygiene_hard_message_limit: 2000    # Protects KV prompt cache (do NOT set to 140 — see below)
 ```
+
+> **Production KV Prompt-Cache Discovery (`hygiene_hard_message_limit`):** Never set `compression.hygiene_hard_message_limit` to a low number such as `140`. Because every tool call + tool result counts as 2 rows, a compacted session still retains `~100–130` message rows. A `140`-message cap re-triggers `Session hygiene` every 2–3 turns even at `76K` tokens, slicing or rewriting message `#1` (`bounding the model payload to 140 of 154 messages`) and **invalidating Gemini Argon's `$0.10/M` KV prompt cache into `$2.00/M` uncached reads (a `20×` cost spike)**. `/stagehands doctor` (Door `#2d`) audits this setting and `/stagehands janitor` sets `hygiene_hard_message_limit: 2000` so compaction is governed strictly by token thresholds (`48k` / `120k`).
 
 Use `/stagehands stats` (or `python3 stats.py --save bench/live_stats.json`) to inspect both rows directly from `state.db` and open the Government Paperwork Brutalist audit ledger at `bench/scoreboard.html`.
 

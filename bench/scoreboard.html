@@ -95,7 +95,7 @@ kbd{border:var(--rule);padding:1px 5px;background:var(--cell);font-size:11px}
 <body>
 <div class="controls">
   <span class="mono grotesque" style="font-weight:700;letter-spacing:.1em">FORM SH-022.5</span>
-  <span class="muted mono">REV. 2026-11-05</span>
+  <span class="muted mono">REV. 2026-11-06 (24H CERTIFIED)</span>
   <span style="flex:1"></span>
   <button id="themeBtn" type="button">[PAPER STOCK: MANILA BOND &#8646; CARBON MICROFICHE]</button>
   <label class="filelabel" for="fileInput">[LOAD LIVE_STATS.JSON]</label>
@@ -105,7 +105,7 @@ kbd{border:var(--rule);padding:1px 5px;background:var(--cell);font-size:11px}
 
 <div class="sheet">
 <section id="sec-header" data-section="1">
-  <h2><span><span class="secno">SECTION 1.</span> FORM HEADER &amp; OFFICIAL FILING METADATA</span><span class="mono">FORM SH-022.5 (REV. 2026-11-05)</span></h2>
+  <h2><span><span class="secno">SECTION 1.</span> FORM HEADER &amp; OFFICIAL FILING METADATA</span><span class="mono">FORM SH-022.5 (REV. 2026-11-06)</span></h2>
   <div class="perf"></div>
   <div class="body">
     <div class="formbox">FORM SH-022.5</div>
@@ -113,15 +113,15 @@ kbd{border:var(--rule);padding:1px 5px;background:var(--cell);font-size:11px}
       AMPERSAND FLEET OPERATIONS // DEPT. OF CONTEXT SANITATION &amp; BACKSTAGE LABOR
     </div>
     <div class="grotesque" style="font-size:15px;margin:2px 0 12px">
-      PUBLIC TOKEN AUDIT &amp; CONTINUITY LEDGER &mdash; SOVEREIGN &amp; STAGEHANDS (HERMES v0.22.5)
+      PUBLIC TOKEN AUDIT &amp; CONTINUITY LEDGER &mdash; SOVEREIGN &amp; STAGEHANDS v0.2 (HERMES v0.22.5 &ndash; v0.23.0)
     </div>
     <div class="meta-grid">
-      <div><span class="k">Filing Date</span><span class="mono">2026-11-05</span></div>
+      <div><span class="k">Filing Date</span><span class="mono">2026-11-06 (24H MARATHON)</span></div>
       <div><span class="k">Inspector</span><span class="mono">R. FLEET / NIMBO-01</span></div>
       <div><span class="k">Ledger DB</span><span class="mono" id="hdrDbPath">/root/.hermes/profiles/nimbo/state.db</span></div>
       <div><span class="k">Repository</span><span class="mono">github.com/Peetbog69/hermes-stagehands</span></div>
       <div><span class="k">Spec</span><span class="mono">bench/BRUTALIST_SCOREBOARD_SPEC.md</span></div>
-      <div><span class="k">Engine Policy</span><span class="mono">48k pruner + 120k in-place compactor</span></div>
+      <div><span class="k">Engine Policy</span><span class="mono">48k pruner + 120k compactor + 2000 KV guard</span></div>
     </div>
     <div style="margin-top:12px">
       <span class="stamp big">[APPROVED FOR FRONTSTAGE DEPLOYMENT]</span>
@@ -197,12 +197,12 @@ kbd{border:var(--rule);padding:1px 5px;background:var(--cell);font-size:11px}
           <h4>FRONT DOOR &mdash; delegation.backend: stagehands</h4>
           <div class="muted" style="font-size:11px">5 stateless, fail-closed workers on $0.15/M flash models. Raw tool dumps die with the ephemeral subagent; only the bounded brief enters the Bot Mode forever-chat.</div>
           <div class="wire"></div>
-          <div class="worker-row h"><span>worker</span><span>model</span><span>budget</span><span>effort</span></div>
-          <div class="worker-row"><span>scout</span><span class="mono">deepseek-v4-flash</span><span>800 tok</span><span>low</span></div>
-          <div class="worker-row"><span>librarian</span><span class="mono">qwen3.7-flash</span><span>1000 tok</span><span>low</span></div>
-          <div class="worker-row"><span>code_monkey</span><span class="mono">deepseek-v4.1-flash</span><span>1500 tok</span><span>low</span></div>
-          <div class="worker-row"><span>briefer</span><span class="mono">deepseek-v4-flash</span><span>600 tok</span><span>low</span></div>
-          <div class="worker-row"><span>adversary</span><span class="mono">claude-haiku-5.5</span><span>1200 tok</span><span>medium</span></div>
+          <div class="worker-row h"><span>worker</span><span>model</span><span>turn cap</span><span>effort</span></div>
+          <div class="worker-row"><span>scout</span><span class="mono">deepseek-v4-flash</span><span>4096 (&le;300w)</span><span>low</span></div>
+          <div class="worker-row"><span>librarian</span><span class="mono">qwen3.7-flash</span><span>4096 (&le;350w)</span><span>low</span></div>
+          <div class="worker-row"><span>code_monkey</span><span class="mono">deepseek-v4.1-flash</span><span>4096 (&le;400w)</span><span>low</span></div>
+          <div class="worker-row"><span>briefer</span><span class="mono">deepseek-v4-flash</span><span>4096 (&le;250w)</span><span>low</span></div>
+          <div class="worker-row"><span>adversary</span><span class="mono">claude-haiku-5.5</span><span>4096 (&le;350w)</span><span>medium</span></div>
         </div>
       </div>
       <div class="diagram">
@@ -216,60 +216,65 @@ kbd{border:var(--rule);padding:1px 5px;background:var(--cell);font-size:11px}
               <tr><th class="mono">threshold_tokens</th><td class="num">120000</td></tr>
               <tr><th class="mono">in_place</th><td class="num">true (preserves session_id)</td></tr>
               <tr><th class="mono">protect_last_n</th><td class="num">20</td></tr>
+              <tr><th class="mono">hygiene_hard_message_limit</th><td class="num">2000 (KV cache guard)</td></tr>
             </tbody>
           </table>
-          <div class="muted" style="font-size:11px">Prunes bulky tool dumps deterministically to <span class="mono">[tool] ... (N chars)</span> stubs and compacts older turns in place without changing the session id.</div>
+          <div class="muted" style="font-size:11px">Prunes bulky tool dumps deterministically to <span class="mono">[tool] ... (N chars)</span> stubs, compacts older turns in place without changing the session id, and prevents 140-msg KV prompt-cache invalidation.</div>
         </div>
       </div>
     </div>
   </div>
 </section>
 <section id="sec-exhibit-d" data-section="5">
-  <h2><span><span class="secno">SECTION 5.</span> EXHIBIT D: LIVE GUINEA-PIG TELEMETRY RECEIPT</span><span class="mono">SESSION <span id="dSession">20261105_055550_0ca572b8</span></span></h2>
+  <h2><span><span class="secno">SECTION 5.</span> EXHIBIT D: LIVE 24-HOUR MARATHON TELEMETRY RECEIPT</span><span class="mono">SESSION <span id="dSession">20261105_055550_0ca572b8</span></span></h2>
   <div class="perf"></div>
   <div class="body">
-    <p class="lede">Two distinct accounting rows (per MoA Council Ruling <strong>D5</strong> &mdash; no double-counting).</p>
+    <p class="lede">Two distinct accounting rows across <strong>24h 15m continuous operation (zero /new resets, 441 API calls)</strong> (per MoA Council Ruling <strong>D5</strong> &mdash; no double-counting).</p>
     <table>
       <thead><tr><th colspan="2">ROW 1 &mdash; FRONT-DOOR INTERCEPTOR (STAGEHANDS SUBAGENTS)</th></tr></thead>
       <tbody>
-        <tr><th class="mono">Subagent Runs</th><td class="num" id="dFrontRuns">1 (code_monkey / deepseek-v4.1-flash)</td></tr>
-        <tr><th class="mono">Backstage Raw Tokens Absorbed</th><td class="num" id="dFrontRaw">20,700</td></tr>
-        <tr><th class="mono">Returned Brief Tokens</th><td class="num" id="dFrontBrief">46</td></tr>
-        <tr><th class="mono">Compression Ratio</th><td class="num"><span id="dFrontRatio">450.0</span>x <span class="muted">(live delegation boundary reduction)</span></td></tr>
-        <tr><th class="mono">Children Cost (USD)</th><td class="num" id="dFrontChildrenCost">$0.0585</td></tr>
-        <tr><th class="mono">Sovereign-Only Cost (USD)</th><td class="num" id="dFrontSovOnly">$4.2781</td></tr>
-        <tr><th class="mono">Front-Door Snowball Tokens Dodged</th><td class="num" id="dFrontSnowball">82,616</td></tr>
+        <tr><th class="mono">Subagent Runs</th><td class="num" id="dFrontRuns">6 (scout / librarian / code_monkey / adversary)</td></tr>
+        <tr><th class="mono">Backstage Raw Tokens Absorbed</th><td class="num" id="dFrontRaw">383,194</td></tr>
+        <tr><th class="mono">Returned Brief Tokens</th><td class="num" id="dFrontBrief">3,834</td></tr>
+        <tr><th class="mono">Compression Ratio</th><td class="num"><span id="dFrontRatio">99.9</span>x <span class="muted">(live delegation boundary reduction)</span></td></tr>
+        <tr><th class="mono">Children Cost (USD)</th><td class="num" id="dFrontChildrenCost">$0.1322</td></tr>
+        <tr><th class="mono">Sovereign-Only Cost (USD)</th><td class="num" id="dFrontSovOnly">$23.2079</td></tr>
+        <tr><th class="mono">Front-Door Snowball Tokens Dodged</th><td class="num" id="dFrontSnowball">184,925,518</td></tr>
       </tbody>
     </table>
     <table>
-      <thead><tr><th colspan="2">ROW 2 &mdash; BACK-DOOR CONTEXT JANITOR (48K PRUNER + 120K IN-PLACE COMPACTOR)</th></tr></thead>
+      <thead><tr><th colspan="2">ROW 2 &mdash; BACK-DOOR CONTEXT JANITOR (48K PRUNER + 120K IN-PLACE COMPACTOR + 2000 KV GUARD)</th></tr></thead>
       <tbody>
-        <tr><th class="mono">Bulky Tool Dumps Pruned</th><td class="num" id="dJanPruned">9</td></tr>
-        <tr><th class="mono">Raw Tokens Reclaimed</th><td class="num" id="dJanReclaimed">46,536</td></tr>
-        <tr><th class="mono">Older Messages Compacted In-Place @ 120k</th><td class="num" id="dJanCompacted">69</td></tr>
-        <tr><th class="mono">Re-Read Tokens Dodged</th><td class="num" id="dJanDodged">4,067,026</td></tr>
-        <tr><th class="mono">Combined Session USD Saved (Row 1 + Row 2) @ $3.00/M Argon Input</th><td class="num" id="dJanSaved">$12.45</td></tr>
+        <tr><th class="mono">Bulky Tool Dumps Pruned</th><td class="num" id="dJanPruned">303</td></tr>
+        <tr><th class="mono">Raw Tokens Reclaimed</th><td class="num" id="dJanReclaimed">679,927</td></tr>
+        <tr><th class="mono">Older Messages Compacted In-Place @ 120k</th><td class="num" id="dJanCompacted">Continuous (0 /new resets across 24h 15m)</td></tr>
+        <tr><th class="mono">Re-Read Tokens Dodged</th><td class="num" id="dJanDodged">353,731,053</td></tr>
+        <tr><th class="mono">Combined Session USD Saved (Row 1 + Row 2) @ $3.00/M Argon Input</th><td class="num" id="dJanSaved">$1,615.97 (Profile Lifetime: $4,275.82)</td></tr>
       </tbody>
     </table>
     <div class="two-col">
       <div>
-        <h3 class="grotesque" style="margin:6px 0 2px">FIELD CONTINUITY CERTIFICATION &mdash; CASE NO. JOCO-SURVEY-168</h3>
+        <h3 class="grotesque" style="margin:6px 0 2px">FIELD CONTINUITY &amp; NIGHT-ONE STRESS CERTIFICATIONS</h3>
         <span class="stamp">[CONTINUITY PASSED: 5/5 SURVEY LOTS RETAINED]</span>
         <p class="lede mono" style="margin-top:6px">
           <strong>168</strong> PNEZD stakeout points across Lots <strong>13, 22, 23, 34, 35</strong> remained 100% intact inside
-          <span class="mono">protect_last_n: 20</span> while <strong>69</strong> older turns were compacted in-place without
+          <span class="mono">protect_last_n: 20</span> while older turns were compacted in-place without
           changing <span class="mono">session_id</span>.
+        </p>
+        <span class="stamp">[NIGHT-1 CUSTOMER SPRINT (PROFILE J): 92.5% BILL REDUCTION]</span>
+        <p class="lede mono" style="margin-top:6px">
+          Initial migration swept a <strong>682,384-token</strong> thread down to <strong>~67K</strong> in place. Overnight <strong>61-call / 182-tool</strong> PDF &amp; document sprint pruned <strong>44</strong> dumps (<strong>11.48M</strong> re-read tokens dodged): <strong>$6.24 actual vs. ~$83.00 unpruned</strong>.
         </p>
       </div>
       <div>
-        <h3 class="grotesque" style="margin:6px 0 2px">SQLITE AUDIT INTEGRITY CERTIFICATIONS (ROBERT&rsquo;S TWO TRAPS)</h3>
-        <span class="stamp">[TRAP A CLEARED]</span>
-        <p class="lede mono">Subagent filter enforces <span class="mono">source = 'subagent' OR json_extract(model_config, '$._delegate_from') IS NOT NULL</span> (excludes <span class="mono">/new</span> and <span class="mono">/branch</span> lineage rows).</p>
-        <span class="stamp">[TRAP B CLEARED]</span>
-        <p class="lede mono">Sovereign cost subtracts <span class="mono">SUM(child.estimated_cost_usd)</span> rolled up by <span class="mono">delegate_tool_results.py</span>.</p>
+        <h3 class="grotesque" style="margin:6px 0 2px">SQLITE AUDIT &amp; KV CACHE CERTIFICATIONS</h3>
+        <span class="stamp">[TRAP A &amp; TRAP B CLEARED]</span>
+        <p class="lede mono">Subagent filter enforces <span class="mono">source = 'subagent' OR json_extract(model_config, '$._delegate_from') IS NOT NULL</span> and subtracts <span class="mono">SUM(child.estimated_cost_usd)</span> rolled up by <span class="mono">delegate_tool_results.py</span>.</p>
+        <span class="stamp">[DOOR #2D: KV PROMPT-CACHE GUARD]</span>
+        <p class="lede mono">Setting <span class="mono">hygiene_hard_message_limit: 140</span> front-slices message #1 every 2&ndash;3 turns after compaction, invalidating Gemini Argon&rsquo;s $0.10/M KV cache into $2.00/M uncached reads (20&times; spike). <span class="mono">/stagehands janitor</span> enforces <span class="mono">2000</span>.</p>
       </div>
     </div>
-    <p class="lede muted" id="loadStatus" style="margin-top:10px">Telemetry loaded: bench/live_stats.json (2026-11-05 08:46).</p>
+    <p class="lede muted" id="loadStatus" style="margin-top:10px">Telemetry loaded: bench/live_stats.json (2026-11-06 06:46 CST &mdash; 24h 15m marathon verified).</p>
   </div>
 </section>
 

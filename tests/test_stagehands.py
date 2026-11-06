@@ -297,15 +297,20 @@ class TestStagehandsProvider(unittest.TestCase):
         # Test turnkey /stagehands doctor and /stagehands janitor against a temp config.yaml
         with tempfile.TemporaryDirectory() as tmpdir:
             cfg_file = Path(tmpdir) / "config.yaml"
-            cfg_file.write_text("delegation:\n  backend: default\n", encoding="utf-8")
+            cfg_file.write_text(
+                "delegation:\n  backend: default\ncompression:\n  hygiene_hard_message_limit: 140\n",
+                encoding="utf-8",
+            )
 
             doc_warn = handler("doctor", config_path=cfg_file)
             self.assertIn("[WARN] Door #1", doc_warn)
             self.assertIn("[WARN] Door #2a", doc_warn)
+            self.assertIn("[WARN] Door #2d", doc_warn)
 
             jan_out = handler("janitor", config_path=cfg_file)
             self.assertIn("proactive_prune_tokens=48000", jan_out)
             self.assertIn("threshold_tokens=120000", jan_out)
+            self.assertIn("hygiene_hard_message_limit=2000", jan_out)
 
             # Simulate /stagehands on setting backend: stagehands
             cfg_file.write_text(
@@ -315,6 +320,7 @@ class TestStagehandsProvider(unittest.TestCase):
             doc_pass = handler("doctor", config_path=cfg_file)
             self.assertIn("[PASS] Door #1", doc_pass)
             self.assertIn("[PASS] Door #2a", doc_pass)
+            self.assertIn("[PASS] Door #2d", doc_pass)
             self.assertIn("BOTH DOORS ARMED AND HEALTHY", doc_pass)
 
         # Test @stagehands:roster context reference expansion

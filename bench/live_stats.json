@@ -5,33 +5,33 @@
     "source": "telegram",
     "model": "google/gemini-4-argon",
     "started_at": 1793879750.8548353,
-    "input_tokens": 4412176,
-    "output_tokens": 150900,
-    "message_count": 111,
-    "tool_call_count": 64,
-    "api_call_count": 227,
-    "estimated_cost_usd": 11.871184499999995
+    "input_tokens": 8810628,
+    "output_tokens": 270054,
+    "message_count": 98,
+    "tool_call_count": 46,
+    "api_call_count": 441,
+    "estimated_cost_usd": 23.340072799999998
   },
   "front_door": {
-    "subagent_runs": 4,
-    "backstage_raw_tokens": 210360,
-    "returned_brief_tokens": 2430,
-    "compression_ratio": 86.6,
-    "children_cost_usd": 0.0919,
-    "sovereign_only_cost_usd": 11.7793,
-    "snowball_avoided_tokens": 30498636
+    "subagent_runs": 6,
+    "backstage_raw_tokens": 383194,
+    "returned_brief_tokens": 3834,
+    "compression_ratio": 99.9,
+    "children_cost_usd": 0.1322,
+    "sovereign_only_cost_usd": 23.2079,
+    "snowball_avoided_tokens": 184925518
   },
   "janitor_active_session": {
-    "pruned_calls": 91,
-    "reclaimed_tokens": 249946,
-    "snowball_avoided_tokens": 45066607
+    "pruned_calls": 303,
+    "reclaimed_tokens": 679927,
+    "snowball_avoided_tokens": 353731053
   },
   "janitor_profile_total": {
-    "pruned_calls": 1853,
-    "reclaimed_tokens": 3539680,
-    "snowball_avoided_tokens": 930927609
+    "pruned_calls": 2081,
+    "reclaimed_tokens": 4019367,
+    "snowball_avoided_tokens": 1240346283
   },
-  "active_snowball_avoided_tokens": 75565243,
-  "active_estimated_saved_usd": 226.6957,
-  "profile_estimated_saved_usd": 2884.28
+  "active_snowball_avoided_tokens": 538656571,
+  "active_estimated_saved_usd": 1615.9697,
+  "profile_estimated_saved_usd": 4275.82
 }

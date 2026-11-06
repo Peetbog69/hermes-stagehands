@@ -19,7 +19,7 @@ JANITOR_RECOMMENDED: dict[str, Any] = {
     "threshold_tokens": 120000,
     "protect_last_n": 20,
     "in_place": True,
-    "hygiene_hard_message_limit": 140,
+    "hygiene_hard_message_limit": 2000,
 }
 
 
@@ -84,12 +84,14 @@ def run_doctor(config_path: Path | None = None, db_path: Path | None = None) -> 
     thresh_tok = comp.get("threshold_tokens")
     protect_n = comp.get("protect_last_n")
     in_place = comp.get("in_place")
+    hyg_msg_limit = comp.get("hygiene_hard_message_limit")
 
     prune_ok = isinstance(prune_tok, int) and 0 < prune_tok <= 64000
     thresh_ok = isinstance(thresh_tok, int) and 0 < thresh_tok <= 160000
     protect_ok = isinstance(protect_n, int) and 10 <= protect_n <= 40
     inplace_ok = in_place is True
-    door2_ok = prune_ok and thresh_ok and protect_ok and inplace_ok
+    hyg_ok = hyg_msg_limit is None or (isinstance(hyg_msg_limit, int) and hyg_msg_limit >= 1000)
+    door2_ok = prune_ok and thresh_ok and protect_ok and inplace_ok and hyg_ok
 
     resolved_db = resolve_state_db(db_path)
     db_ok = resolved_db is not None
@@ -113,6 +115,11 @@ def run_doctor(config_path: Path | None = None, db_path: Path | None = None) -> 
         (
             f"  [{'PASS' if (protect_ok and inplace_ok) else 'WARN'}] Door #2c · Forever-Chat Tail & In-Place: "
             f"`protect_last_n = {protect_n!r}`, `in_place = {in_place!r}` (recommended: `20`, `True`)"
+        ),
+        (
+            f"  [{'PASS' if hyg_ok else 'WARN'}] Door #2d · KV Prompt-Cache Guard: "
+            f"`compression.hygiene_hard_message_limit = {hyg_msg_limit!r}` "
+            "(recommended: `>=1000` / `2000`; low limits like `140` slice message #1 and bust KV prompt cache)"
         ),
         (
             f"  [{'PASS' if db_ok else 'WARN'}] Telemetry Ledger (`state.db`): "
