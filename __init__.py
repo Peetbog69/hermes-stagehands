@@ -172,7 +172,7 @@ def _make_slash_handler(ctx: Any, provider: StagehandsProvider):
         api = getattr(ctx, "delegation_backends", None)
 
         if action in ("stats", "savings", "scoreboard"):
-            return format_stats_report(compute_stats(db_path))
+            return format_stats_report(compute_stats(db_path, session_id=session_key or None))
 
         if action in ("doctor", "check", "audit"):
             return run_doctor(config_path=config_path, db_path=db_path)
@@ -229,7 +229,14 @@ def _register_context_ref(ctx: Any) -> None:
     try:
         from agent.context_references import ContextCompletionItem, ContextReferenceProvider
     except ImportError:
-        return
+        class ContextCompletionItem:  # type: ignore[no-redef]
+            def __init__(self, label: str, text: str, detail: str = "") -> None:
+                self.label = label
+                self.text = text
+                self.detail = detail
+
+        class ContextReferenceProvider:  # type: ignore[no-redef]
+            pass
 
     class StagehandsContextReference(ContextReferenceProvider):
         prefix = "stagehands"
@@ -261,8 +268,33 @@ def _register_context_ref(ctx: Any) -> None:
         pass
 
 
+def _render_sovereign_prompt_section(session_info: Any = None) -> str:
+    """Frozen Sovereign routing & anti-churn discipline injected once after memory."""
+    if isinstance(session_info, dict) and session_info.get("source") == "subagent":
+        return ""
+    try:
+        cfg_path = _resolve_config_path()
+        if cfg_path and cfg_path.is_file():
+            raw = cfg_path.read_text(encoding="utf-8")
+            if "stagehands" not in raw:
+                return ""
+    except Exception:
+        pass
+    return (
+        "## Sovereign & Stagehands Discipline\n"
+        "- **Backstage First (`delegate_task`):** Your parent loop runs on frontier Sovereign compute. "
+        "Whenever a task needs 3+ `terminal`, `execute_code`, `read_file`, or `search_files` calls, log/DB "
+        "scraping, codebase diffs, or bulky payload synthesis, dispatch `delegate_task` with a typed `worker` "
+        "(`scout`, `librarian`, `code_monkey`, `adversary`, `briefer`) instead of running tool loops directly in the parent.\n"
+        "- **No Reflexive Skill Reload Churn:** If an earlier `skill_view` result shows `[SKILL_PRUNED: ...]`, "
+        "do NOT reload that skill unless your *current* active user request directly needs its exact commands or "
+        "templates and no newer load is already in context. When a subtask needs a skill, let `code_monkey` or "
+        "`librarian` load and execute it backstage so 40KB skill bodies stay out of Sovereign context."
+    )
+
+
 def register(ctx: Any) -> None:
-    """Register the Stagehands delegation provider, `/stagehands` command, and `@stagehands:` context ref."""
+    """Register the Stagehands delegation provider, `/stagehands` command, `@stagehands:` context ref, and Sovereign prompt section."""
     provider = StagehandsProvider()
     ctx.register_delegation_provider(provider)
     if hasattr(ctx, "register_command"):
@@ -272,4 +304,13 @@ def register(ctx: Any) -> None:
             description="Inspect Stagehands workers, live savings (`stats`), audit health (`doctor`), or tune (`janitor`)",
             args_hint="[status | stats | doctor | janitor | on | off] [--janitor] [--now]",
         )
+    if hasattr(ctx, "register_system_prompt_section"):
+        try:
+            ctx.register_system_prompt_section(
+                "stagehands.sovereign_routing",
+                _render_sovereign_prompt_section,
+                position="after_memory",
+            )
+        except Exception:
+            pass
     _register_context_ref(ctx)

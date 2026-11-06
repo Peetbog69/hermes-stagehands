@@ -258,6 +258,7 @@ class TestStagehandsProvider(unittest.TestCase):
         commands = {}
         calls = []
         context_refs = []
+        prompt_sections = {}
 
         class StubBackends:
             def set_global_backend(self, name, *, session_key="", apply_now=False):
@@ -275,12 +276,21 @@ class TestStagehandsProvider(unittest.TestCase):
             def register_context_reference(self, ref):
                 context_refs.append(ref)
 
+            def register_system_prompt_section(self, sec_id, content, **kwargs):
+                prompt_sections[sec_id] = (content, kwargs)
+
         stagehands_pkg.register(StubCtx())
         self.assertEqual(len(providers), 1)
         self.assertEqual(providers[0].name, "stagehands")
         self.assertIn("stagehands", commands)
         self.assertEqual(len(context_refs), 1)
         self.assertEqual(context_refs[0].prefix, "stagehands")
+        self.assertIn("stagehands.sovereign_routing", prompt_sections)
+        sec_fn, sec_kw = prompt_sections["stagehands.sovereign_routing"]
+        self.assertEqual(sec_kw.get("position"), "after_memory")
+        self.assertEqual(sec_fn({"source": "subagent"}), "")
+        self.assertIn("Backstage First", sec_fn({"source": "telegram"}))
+        self.assertIn("No Reflexive Skill Reload Churn", sec_fn({"source": "telegram"}))
 
         handler, _ = commands["stagehands"]
         roster_text = handler("")
@@ -479,6 +489,54 @@ class TestSqlTrapsRegression(unittest.TestCase):
         jan = self._run()["janitor_active_session"]
         self.assertEqual(jan["pruned_calls"], 2)
         self.assertGreater(jan["reclaimed_tokens"], 8000)
+
+    def test_janitor_counts_terminal_exec_search_write_and_duplicate_stubs(self):
+        import sqlite3
+
+        conn = sqlite3.connect(self.db_path)
+        mcols = "session_id, role, content, tool_name, timestamp"
+        stubs = [
+            (
+                "[terminal] ran `pytest -q` -> exit 0, 120 lines output",
+                "terminal",
+                1004.0,
+            ),
+            (
+                "[execute_code] `from hermes_tools import terminal...` (80 lines output)",
+                "execute_code",
+                1004.1,
+            ),
+            (
+                "[search_files] content search for 'foo' in /tmp -> 25 matches",
+                "search_files",
+                1004.2,
+            ),
+            (
+                "[write_file] wrote to /tmp/out.py (50 lines)",
+                "write_file",
+                1004.3,
+            ),
+            (
+                "[Duplicate tool output — same content as a more recent call]",
+                "skill_view",
+                1004.4,
+            ),
+        ]
+        for content, tname, ts in stubs:
+            conn.execute(
+                f"INSERT INTO messages ({mcols}) VALUES (?,?,?,?,?)",
+                (self.PARENT, "tool", content, tname, ts),
+            )
+        conn.execute(
+            f"INSERT INTO messages ({mcols}) VALUES (?,?,?,?,?)",
+            (self.PARENT, "assistant", "Done.", None, 1005.0),
+        )
+        conn.commit()
+        conn.close()
+
+        jan = self._run()["janitor_active_session"]
+        self.assertEqual(jan["pruned_calls"], 5)
+        self.assertGreater(jan["reclaimed_tokens"], 4000)
 
 
 if __name__ == "__main__":

@@ -118,6 +118,11 @@ class StagehandsProvider(DelegationProvider):
             "Sovereign & Stagehands routing — keep raw logs, grep dumps, and bulky payloads out of "
             "your primary context by picking a typed `worker` per task: "
             f"{roster}. "
+            "SOVEREIGN RULE (overrides default 'DO NOT USE FOR' above): your parent turn runs on "
+            "expensive frontier compute — whenever work needs 3+ shell/file/DB probes, log scraping, "
+            "codebase greps/tests, or multi-doc/skill reading, delegate it to `scout`, `librarian`, "
+            "`code_monkey`, `adversary`, or `briefer` instead of chaining `terminal`, `execute_code`, "
+            "or `read_file` loops directly in the parent. "
             "Ask backstage workers for concise, structured briefs or use `output_schema` to bound "
             "their response. Omit `worker` only when a subagent genuinely needs the parent route."
         )
