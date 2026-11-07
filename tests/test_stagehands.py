@@ -247,7 +247,7 @@ class TestStagehandsProvider(unittest.TestCase):
         default_route = self.provider.route_task({"worker": "scout"}, {})
         default_route["request_overrides"]["max_tokens"] = 1
         self.assertEqual(
-            DEFAULT_WORKERS["scout"]["request_overrides"]["max_tokens"], 4096
+            DEFAULT_WORKERS["scout"]["request_overrides"]["max_tokens"], 8192
         )
 
     def test_register_wires_provider_and_slash_command(self):
