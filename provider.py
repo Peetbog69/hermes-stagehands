@@ -14,31 +14,31 @@ DEFAULT_WORKERS: dict[str, dict[str, Any]] = {
     "scout": {
         "model": "deepseek/deepseek-v4-flash",
         "reasoning_effort": "low",
-        "request_overrides": {"max_tokens": 4096},
+        "request_overrides": {"max_tokens": 8192},
         "desc": "Fast log/file/URL reader; extracts signal and drops raw noise (<=300 words)",
     },
     "librarian": {
         "model": "qwen/qwen3.7-flash",
         "reasoning_effort": "low",
-        "request_overrides": {"max_tokens": 4096},
+        "request_overrides": {"max_tokens": 8192},
         "desc": "Multi-source doc and codebase searcher returning cited excerpts only (<=350 words)",
     },
     "code_monkey": {
         "model": "deepseek/deepseek-v4.1-flash",
         "reasoning_effort": "low",
-        "request_overrides": {"max_tokens": 4096},
+        "request_overrides": {"max_tokens": 16384},
         "desc": "Backstage mechanic for repo greps, test runs, and root-cause diffs (<=400 words)",
     },
     "adversary": {
         "model": "anthropic/claude-haiku-5.5",
         "reasoning_effort": "medium",
-        "request_overrides": {"max_tokens": 4096},
+        "request_overrides": {"max_tokens": 8192},
         "desc": "Red-team auditor finding edge cases, race conditions, and security holes (<=350 words)",
     },
     "briefer": {
         "model": "deepseek/deepseek-v4-flash",
         "reasoning_effort": "low",
-        "request_overrides": {"max_tokens": 4096},
+        "request_overrides": {"max_tokens": 8192},
         "desc": "Executive synthesizer pre-digesting heavy JSON/payload dumps into compact briefs (<=250 words)",
     },
 }
