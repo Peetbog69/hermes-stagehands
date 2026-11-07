@@ -29,11 +29,11 @@ from provider import DEFAULT_WORKERS, StagehandsProvider  # noqa: E402
 
 WORKERS = ["scout", "librarian", "code_monkey", "adversary", "briefer"]
 EXPECTED_ROUTES = [
-    ("scout", "deepseek/deepseek-v4-flash", "low", 4096),
-    ("librarian", "qwen/qwen3.7-flash", "low", 4096),
-    ("code_monkey", "deepseek/deepseek-v4.1-flash", "low", 4096),
-    ("adversary", "anthropic/claude-haiku-5.5", "medium", 4096),
-    ("briefer", "deepseek/deepseek-v4-flash", "low", 4096),
+    ("scout", "deepseek/deepseek-v4-flash", "low", 16384 if name == "code_monkey" else 8192),
+    ("librarian", "qwen/qwen3.7-flash", "low", 16384 if name == "code_monkey" else 8192),
+    ("code_monkey", "deepseek/deepseek-v4.1-flash", "low", 16384 if name == "code_monkey" else 8192),
+    ("adversary", "anthropic/claude-haiku-5.5", "medium", 16384 if name == "code_monkey" else 8192),
+    ("briefer", "deepseek/deepseek-v4-flash", "low", 16384 if name == "code_monkey" else 8192),
 ]
 
 
@@ -193,7 +193,7 @@ class TestStagehandsProvider(unittest.TestCase):
         )
         route = self.provider.route_task({"worker": "scout"}, config)
         self.assertEqual(route["model"], "custom/m")
-        self.assertEqual(route["request_overrides"], {"max_tokens": 4096})
+        self.assertEqual(route["request_overrides"], {"max_tokens": 16384 if name == "code_monkey" else 8192})
         self.assertNotIn("name", route)
         with self.assertRaises(DelegationRouteError):
             self.provider.route_task({"worker": "librarian"}, config)
@@ -247,7 +247,7 @@ class TestStagehandsProvider(unittest.TestCase):
         default_route = self.provider.route_task({"worker": "scout"}, {})
         default_route["request_overrides"]["max_tokens"] = 1
         self.assertEqual(
-            DEFAULT_WORKERS["scout"]["request_overrides"]["max_tokens"], 4096
+            DEFAULT_WORKERS["scout"]["request_overrides"]["max_tokens"], 16384 if name == "code_monkey" else 8192
         )
 
     def test_register_wires_provider_and_slash_command(self):
