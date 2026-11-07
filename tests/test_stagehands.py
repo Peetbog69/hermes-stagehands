@@ -538,6 +538,56 @@ class TestSqlTrapsRegression(unittest.TestCase):
         self.assertEqual(jan["pruned_calls"], 5)
         self.assertGreater(jan["reclaimed_tokens"], 4000)
 
+    def test_resolve_state_db_no_hardcoded_nimbo_when_profile_unset(self):
+        import os
+        import stats
+
+        with tempfile.TemporaryDirectory() as td:
+            home = Path(td)
+            default_db = home / "state.db"
+            default_db.write_text("", encoding="utf-8")
+            decoy_nimbo = home / "profiles" / "nimbo" / "state.db"
+            decoy_nimbo.parent.mkdir(parents=True, exist_ok=True)
+            decoy_nimbo.write_text("", encoding="utf-8")
+
+            old_home = os.environ.get("HERMES_HOME")
+            old_prof = os.environ.get("HERMES_PROFILE")
+            old_db = os.environ.get("HERMES_STATE_DB")
+            try:
+                os.environ["HERMES_HOME"] = str(home)
+                os.environ.pop("HERMES_PROFILE", None)
+                os.environ.pop("HERMES_STATE_DB", None)
+                self.assertEqual(stats.resolve_state_db(), default_db)
+
+                os.environ["HERMES_PROFILE"] = "nimbo"
+                self.assertEqual(stats.resolve_state_db(), decoy_nimbo)
+            finally:
+                for k, v in (("HERMES_HOME", old_home), ("HERMES_PROFILE", old_prof), ("HERMES_STATE_DB", old_db)):
+                    if v is None:
+                        os.environ.pop(k, None)
+                    else:
+                        os.environ[k] = v
+
+    def test_sovereign_prompt_gate_respects_delegation_backend(self):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("stagehands_init", ROOT / "__init__.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        with tempfile.TemporaryDirectory() as td:
+            cfg = Path(td) / "config.yaml"
+            cfg.write_text("delegation:\n  backend: default\n", encoding="utf-8")
+            self.assertEqual(mod._render_sovereign_prompt_section(config_path=cfg), "")
+
+            cfg.write_text("delegation:\n  backend: stagehands\n", encoding="utf-8")
+            rendered = mod._render_sovereign_prompt_section(config_path=cfg)
+            self.assertIn("Sovereign & Stagehands Discipline", rendered)
+            self.assertEqual(
+                mod._render_sovereign_prompt_section({"source": "subagent"}, config_path=cfg),
+                "",
+            )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -99,9 +99,10 @@ def resolve_state_db(explicit_path: str | Path | None = None) -> Path | None:
     if env_db:
         candidates.append(Path(env_db).expanduser())
 
-    profile = os.environ.get("HERMES_PROFILE") or "nimbo"
+    profile = os.environ.get("HERMES_PROFILE")
     hermes_home = Path(os.environ.get("HERMES_HOME", "~/.hermes")).expanduser()
-    candidates.append(hermes_home / "profiles" / profile / "state.db")
+    if profile:
+        candidates.append(hermes_home / "profiles" / profile / "state.db")
     candidates.append(hermes_home / "state.db")
 
     for c in candidates:

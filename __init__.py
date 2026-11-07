@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 try:
     from .provider import DEFAULT_WORKERS, StagehandsProvider
@@ -124,6 +127,10 @@ def run_doctor(config_path: Path | None = None, db_path: Path | None = None) -> 
         (
             f"  [{'PASS' if db_ok else 'WARN'}] Telemetry Ledger (`state.db`): "
             + (f"`{resolved_db}`" if db_ok else "not found")
+        ),
+        (
+            "  [INFO] Session Prompt Hook: sessions created before enabling Stagehands "
+            "keep a pinned `system_prompt` — run `/new` once after enabling to activate Sovereign routing."
         ),
     ]
     if door1_ok and door2_ok:
@@ -268,18 +275,22 @@ def _register_context_ref(ctx: Any) -> None:
         pass
 
 
-def _render_sovereign_prompt_section(session_info: Any = None) -> str:
+def _render_sovereign_prompt_section(
+    session_info: Any = None,
+    *,
+    config_path: Path | None = None,
+) -> str:
     """Frozen Sovereign routing & anti-churn discipline injected once after memory."""
     if isinstance(session_info, dict) and session_info.get("source") == "subagent":
         return ""
     try:
-        cfg_path = _resolve_config_path()
-        if cfg_path and cfg_path.is_file():
-            raw = cfg_path.read_text(encoding="utf-8")
-            if "stagehands" not in raw:
-                return ""
-    except Exception:
-        pass
+        _, cfg = _read_raw_config(config_path)
+        delegation = cfg.get("delegation") if isinstance(cfg, dict) else {}
+        backend = delegation.get("backend") if isinstance(delegation, dict) else None
+        if backend is not None and backend != "stagehands":
+            return ""
+    except Exception as exc:
+        logger.debug("Stagehands prompt gate config check failed: %s", exc)
     return (
         "## Sovereign & Stagehands Discipline\n"
         "- **Backstage First (`delegate_task`):** Your parent loop runs on frontier Sovereign compute. "

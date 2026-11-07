@@ -138,12 +138,16 @@ hermes config set delegation.backend stagehands
 Use your checkout's absolute path if it differs. In an active Hermes conversation (CLI, TUI, Desktop, or Telegram), inspect the roster or switch immediately with the plugin's built-in `/stagehands` slash command:
 
 ```text
-/stagehands                     # Show backstage worker roster & routes
+/stagehands on --janitor --now  # Turnkey: activate Door #1 + Door #2 immediately
+/new                            # Start a fresh session so the Sovereign prompt hook is pinned
 /stagehands doctor              # Audit Door #1 (Stagehands) + Door #2 (48k/120k Janitor)
-/stagehands janitor             # Apply recommended 48k/120k Back-Door Janitor settings
-/stagehands on --janitor --now  # Turnkey: activate both doors immediately in this chat
 /stagehands stats               # Live Front-Door + Back-Door token & USD savings from state.db
+/stagehands                     # Show backstage worker roster & routes
 ```
+
+> **First 5 Minutes Note:** Hermes pins `system_prompt` when a session is created. After running `/stagehands on --janitor --now` for the first time, run `/new` once so your conversation picks up the `after_memory` Sovereign routing prompt section.
+>
+> **Disclosure —** Stagehands reads `<HERMES_HOME>/state.db` read-only to compute `/stagehands stats` and `@stagehands:` telemetry, and updates `delegation.backend` and `compression.*` keys in `<HERMES_HOME>/config.yaml` (writing a timestamped `.bak-janitor-*` backup first) only when you explicitly run `/stagehands on`, `/stagehands off`, or `/stagehands janitor`. It makes no network calls of its own and stores no credentials.
 
 You can also expand live telemetry or health status inline inside any prompt using the `@stagehands:` context reference provider:
 
