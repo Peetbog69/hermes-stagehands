@@ -75,6 +75,35 @@ def apply_janitor_config(config_path: Path | None = None) -> str:
     )
 
 
+def _inspect_active_session_prompt_hook(resolved_db: Path | None) -> bool | None:
+    """Return True if active session's system_prompt has Sovereign & Stagehands Discipline,
+    False if it has a non-empty system_prompt missing it, or None if unavailable."""
+    if resolved_db is None or not resolved_db.is_file():
+        return None
+    try:
+        import sqlite3
+
+        conn = sqlite3.connect(f"file:{resolved_db}?mode=ro", uri=True)
+        try:
+            cur = conn.cursor()
+            cols = {r[1] for r in cur.execute("PRAGMA table_info(sessions)").fetchall()}
+            if "system_prompt" not in cols:
+                return None
+            row = cur.execute(
+                "SELECT system_prompt FROM sessions s "
+                "WHERE COALESCE(s.source, '') != 'subagent' "
+                "AND json_extract(s.model_config, '$._delegate_from') IS NULL "
+                "ORDER BY COALESCE((SELECT MAX(m.timestamp) FROM messages m WHERE m.session_id = s.id), s.started_at) DESC LIMIT 1"
+            ).fetchone()
+            if not row or not row[0]:
+                return None
+            return "Sovereign & Stagehands Discipline" in str(row[0])
+        finally:
+            conn.close()
+    except Exception:
+        return None
+
+
 def run_doctor(config_path: Path | None = None, db_path: Path | None = None) -> str:
     """Audit both doors of the Sovereign & Stagehands architecture (read-only)."""
     path, user_config = _read_raw_config(config_path)
@@ -98,6 +127,22 @@ def run_doctor(config_path: Path | None = None, db_path: Path | None = None) -> 
 
     resolved_db = resolve_state_db(db_path)
     db_ok = resolved_db is not None
+    hook_pinned = _inspect_active_session_prompt_hook(resolved_db)
+    if hook_pinned is True:
+        hook_line = (
+            "  [PASS] Door #1b · Live Prompt Hook Pinned: "
+            "active session `system_prompt` includes `Sovereign & Stagehands Discipline`"
+        )
+    elif hook_pinned is False:
+        hook_line = (
+            "  [WARN] Door #1b · Live Prompt Hook Pinned: "
+            "active session `system_prompt` predates plugin load — restart gateway & run `/new` once"
+        )
+    else:
+        hook_line = (
+            "  [INFO] Session Prompt Hook: sessions created before enabling Stagehands "
+            "keep a pinned `system_prompt` — run `/new` once after enabling to activate Sovereign routing."
+        )
 
     lines = [
         "🩺 Sovereign & Stagehands — Two-Door Doctor Audit",
@@ -107,6 +152,7 @@ def run_doctor(config_path: Path | None = None, db_path: Path | None = None) -> 
             f"`delegation.backend = {backend}`"
             + ("" if door1_ok else " (run `/stagehands on --now` to enable)")
         ),
+        hook_line,
         (
             f"  [{'PASS' if prune_ok else 'WARN'}] Door #2a · Proactive Tool Pruner: "
             f"`compression.proactive_prune_tokens = {prune_tok!r}` (recommended: `48000`)"
@@ -127,10 +173,6 @@ def run_doctor(config_path: Path | None = None, db_path: Path | None = None) -> 
         (
             f"  [{'PASS' if db_ok else 'WARN'}] Telemetry Ledger (`state.db`): "
             + (f"`{resolved_db}`" if db_ok else "not found")
-        ),
-        (
-            "  [INFO] Session Prompt Hook: sessions created before enabling Stagehands "
-            "keep a pinned `system_prompt` — run `/new` once after enabling to activate Sovereign routing."
         ),
     ]
     if door1_ok and door2_ok:

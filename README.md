@@ -59,15 +59,15 @@ Hermes supplies subagent isolation and dispatch. Stagehands supplies the typed `
 
 ## Meet the five workers
 
-When `provider` is not pinned on a worker or in `delegation.provider`, workers automatically inherit the parent session's active provider (`nous`, `openrouter`, etc.) and re-derive the matching API mode. No worker injects a default `service_tier`. Each worker sets `request_overrides.max_tokens: 4096` so internal reasoning tokens (`reasoning_tokens`) and multi-step tool calls never hit premature API truncation (`finish_reason: length`), while the worker's prompt enforces a strict word-count brief ceiling.
+When `provider` is not pinned on a worker or in `delegation.provider`, workers automatically inherit the parent session's active provider (`nous`, `openrouter`, etc.) and re-derive the matching API mode. No worker injects a default `service_tier`. Workers set generous `request_overrides.max_tokens` (`8,192` for `scout`, `librarian`, `adversary`, `briefer`; `16,384` for `code_monkey`) so internal reasoning tokens (`reasoning_tokens`) and multi-step tool calls never hit premature API truncation (`finish_reason: length`), while the worker's prompt enforces a strict word-count brief ceiling.
 
 | Worker | Default model | Reasoning effort | Turn ceiling (`max_tokens`) | Brief target | Backstage job |
 | :--- | :--- | :--- | ---: | ---: | :--- |
-| `scout` | `deepseek/deepseek-v4-flash` | `low` | 4,096 | ≤300 words | Read logs, files, and URLs; extract signal into ≤300 words. |
-| `librarian` | `qwen/qwen3.7-flash` | `low` | 4,096 | ≤350 words | Search documentation and code; return cited excerpts. |
-| `code_monkey` | `deepseek/deepseek-v4.1-flash` | `low` | 4,096 | ≤400 words | Investigate repo greps, test failures, and root-cause diffs. |
-| `adversary` | `anthropic/claude-haiku-5.5` | `medium` | 4,096 | ≤350 words | Audit edge cases, race conditions, and security holes. |
-| `briefer` | `deepseek/deepseek-v4-flash` | `low` | 4,096 | ≤250 words | Turn bulky JSON and payloads into executive briefs of ≤250 words. |
+| `scout` | `deepseek/deepseek-v4-flash` | `low` | 8,192 | ≤300 words | Read logs, files, and URLs; extract signal into ≤300 words. |
+| `librarian` | `qwen/qwen3.7-flash` | `low` | 8,192 | ≤350 words | Search documentation and code; return cited excerpts. |
+| `code_monkey` | `deepseek/deepseek-v4.1-flash` | `low` | 16,384 | ≤400 words | Investigate repo greps, test failures, and root-cause diffs. |
+| `adversary` | `anthropic/claude-haiku-5.5` | `medium` | 8,192 | ≤350 words | Audit edge cases, race conditions, and security holes. |
+| `briefer` | `deepseek/deepseek-v4-flash` | `low` | 8,192 | ≤250 words | Turn bulky JSON and payloads into executive briefs of ≤250 words. |
 
 For example, a delegated task selects its route with:
 
@@ -75,7 +75,7 @@ For example, a delegated task selects its route with:
 {"goal": "Inspect the log file and return incidents with line references in <=300 words.", "worker": "scout"}
 ```
 
-The route carries `label: "scout"` and `request_overrides: {"max_tokens": 4096}` alongside its model and reasoning effort.
+The route carries `label: "scout"` and `request_overrides: {"max_tokens": 8192}` alongside its model and reasoning effort.
 
 ## Audited benchmark matrix
 

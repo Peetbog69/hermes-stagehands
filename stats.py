@@ -173,66 +173,83 @@ def compute_stats(
 
         # 1. Front-Door Bouncer: subagent runs (Robert Gotcha A: filter subagent explicitly,
         # never bare parent_session_id which also links /new, /branch, and compactions)
-        sub_where = [
-            "(s.source = 'subagent' OR json_extract(s.model_config, '$._delegate_from') IS NOT NULL)"
-        ]
-        sub_params: list[Any] = []
-        if since_ts is not None:
-            sub_where.append("s.started_at >= ?")
-            sub_params.append(since_ts)
-        if active_sid:
-            sub_where.append("s.parent_session_id = ?")
-            sub_params.append(active_sid)
+        def _front_door_for_scope(target_sid: str | None) -> dict[str, Any]:
+            sub_where = [
+                "(s.source = 'subagent' OR json_extract(s.model_config, '$._delegate_from') IS NOT NULL)"
+            ]
+            sub_params: list[Any] = []
+            if since_ts is not None:
+                sub_where.append("s.started_at >= ?")
+                sub_params.append(since_ts)
+            if target_sid:
+                sub_where.append("s.parent_session_id = ?")
+                sub_params.append(target_sid)
 
-        sub_rows = cur.execute(
-            f"SELECT s.id, s.parent_session_id, s.model, s.started_at, "
-            f"s.input_tokens, s.output_tokens, s.tool_call_count, "
-            f"COALESCE(s.estimated_cost_usd, 0.0) AS estimated_cost_usd "
-            f"FROM sessions s WHERE {' AND '.join(sub_where)} "
-            f"ORDER BY s.started_at DESC",
-            sub_params,
-        ).fetchall()
+            sub_rows = cur.execute(
+                f"SELECT s.id, s.parent_session_id, s.model, s.started_at, "
+                f"s.input_tokens, s.output_tokens, s.tool_call_count, "
+                f"COALESCE(s.estimated_cost_usd, 0.0) AS estimated_cost_usd "
+                f"FROM sessions s WHERE {' AND '.join(sub_where)} "
+                f"ORDER BY s.started_at DESC",
+                sub_params,
+            ).fetchall()
 
-        subagent_count = len(sub_rows)
-        backstage_raw_tokens = 0
-        returned_brief_tokens = 0
-        front_door_snowball_tokens = 0
-        children_cost_usd = 0.0
+            runs = len(sub_rows)
+            raw_tokens = 0
+            brief_tokens = 0
+            snowball_tokens = 0
+            child_usd = 0.0
 
-        for srow in sub_rows:
-            sid = srow["id"]
-            children_cost_usd += float(srow["estimated_cost_usd"] or 0.0)
-            tool_chars_row = cur.execute(
-                "SELECT COALESCE(SUM(LENGTH(content)), 0) AS c "
-                "FROM messages WHERE session_id = ? AND role = 'tool'",
-                (sid,),
-            ).fetchone()
-            raw_tok = int((tool_chars_row["c"] if tool_chars_row else 0) // 4)
-
-            last_asst = cur.execute(
-                "SELECT COALESCE(LENGTH(content), 0) AS c "
-                "FROM messages WHERE session_id = ? AND role = 'assistant' "
-                "ORDER BY id DESC LIMIT 1",
-                (sid,),
-            ).fetchone()
-            brief_tok = int((last_asst["c"] if last_asst else 0) // 4)
-
-            delta_tok = max(0, raw_tok - brief_tok)
-            backstage_raw_tokens += raw_tok
-            returned_brief_tokens += brief_tok
-
-            parent_id = srow["parent_session_id"]
-            remaining_turns = 1
-            if parent_id:
-                t_row = cur.execute(
-                    "SELECT COUNT(*) AS cnt FROM messages "
-                    "WHERE session_id = ? AND role = 'assistant' "
-                    "AND id > COALESCE((SELECT MAX(id) FROM messages WHERE session_id = ?), 0)",
-                    (parent_id, sid),
+            for srow in sub_rows:
+                sid = srow["id"]
+                child_usd += float(srow["estimated_cost_usd"] or 0.0)
+                tool_chars_row = cur.execute(
+                    "SELECT COALESCE(SUM(LENGTH(content)), 0) AS c "
+                    "FROM messages WHERE session_id = ? AND role = 'tool'",
+                    (sid,),
                 ).fetchone()
-                remaining_turns = max(1, int(t_row["cnt"] if t_row else 1))
+                raw_tok = int((tool_chars_row["c"] if tool_chars_row else 0) // 4)
 
-            front_door_snowball_tokens += delta_tok * remaining_turns
+                last_asst = cur.execute(
+                    "SELECT COALESCE(LENGTH(content), 0) AS c "
+                    "FROM messages WHERE session_id = ? AND role = 'assistant' "
+                    "ORDER BY id DESC LIMIT 1",
+                    (sid,),
+                ).fetchone()
+                brief_tok = int((last_asst["c"] if last_asst else 0) // 4)
+
+                delta_tok = max(0, raw_tok - brief_tok)
+                raw_tokens += raw_tok
+                brief_tokens += brief_tok
+
+                parent_id = srow["parent_session_id"]
+                remaining_turns = 1
+                if parent_id:
+                    t_row = cur.execute(
+                        "SELECT COUNT(*) AS cnt FROM messages "
+                        "WHERE session_id = ? AND role = 'assistant' "
+                        "AND id > COALESCE((SELECT MAX(id) FROM messages WHERE session_id = ?), 0)",
+                        (parent_id, sid),
+                    ).fetchone()
+                    remaining_turns = max(1, int(t_row["cnt"] if t_row else 1))
+
+                snowball_tokens += delta_tok * remaining_turns
+
+            return {
+                "subagent_runs": runs,
+                "backstage_raw_tokens": raw_tokens,
+                "returned_brief_tokens": brief_tokens,
+                "snowball_avoided_tokens": snowball_tokens,
+                "children_cost_usd": child_usd,
+            }
+
+        active_fd = _front_door_for_scope(active_sid) if active_sid else _front_door_for_scope(None)
+        profile_fd = _front_door_for_scope(None)
+        subagent_count = active_fd["subagent_runs"]
+        backstage_raw_tokens = active_fd["backstage_raw_tokens"]
+        returned_brief_tokens = active_fd["returned_brief_tokens"]
+        front_door_snowball_tokens = active_fd["snowball_avoided_tokens"]
+        children_cost_usd = active_fd["children_cost_usd"]
 
         # 2. Back-Door Janitor: pruned tool outputs in active session + overall
         def _janitor_for_scope(target_sid: str | None) -> dict[str, int]:
@@ -299,7 +316,7 @@ def compute_stats(
             total_snowball_avoided / 1_000_000.0
         ) * effective_rate
         profile_saved_usd = (
-            (front_door_snowball_tokens + profile_janitor["snowball_avoided_tokens"])
+            (profile_fd["snowball_avoided_tokens"] + profile_janitor["snowball_avoided_tokens"])
             / 1_000_000.0
         ) * ARGON_INPUT_USD_PER_M
 
@@ -323,6 +340,13 @@ def compute_stats(
                 "children_cost_usd": round(children_cost_usd, 4),
                 "sovereign_only_cost_usd": round(sovereign_only_cost, 4),
                 "snowball_avoided_tokens": front_door_snowball_tokens,
+            },
+            "front_door_profile_total": {
+                "subagent_runs": profile_fd["subagent_runs"],
+                "backstage_raw_tokens": profile_fd["backstage_raw_tokens"],
+                "returned_brief_tokens": profile_fd["returned_brief_tokens"],
+                "snowball_avoided_tokens": profile_fd["snowball_avoided_tokens"],
+                "children_cost_usd": round(profile_fd["children_cost_usd"], 4),
             },
             "janitor_active_session": active_janitor,
             "janitor_profile_total": profile_janitor,
@@ -358,6 +382,7 @@ def format_stats_report(stats: dict[str, Any]) -> str:
 
     sess = stats.get("active_session") or {}
     fd = stats["front_door"]
+    fd_p = stats.get("front_door_profile_total") or fd
     jan_s = stats["janitor_active_session"]
     jan_p = stats["janitor_profile_total"]
 
@@ -390,7 +415,8 @@ def format_stats_report(stats: dict[str, Any]) -> str:
         f"{jan_s['snowball_avoided_tokens']:,} re-read tokens dodged "
         f"(${stats['active_estimated_saved_usd']:.2f} list / ${cache_adj_usd:.2f} cache-adj saved this chat)",
         "  • Profile Lifetime Janitor + Stagehands:",
-        f"    {jan_p['pruned_calls']:,} pruned tool dumps · "
+        f"    {fd_p['subagent_runs']:,} backstage worker runs · "
+        f"{jan_p['pruned_calls']:,} pruned tool dumps · "
         f"{jan_p['reclaimed_tokens']:,} raw tokens reclaimed · "
         f"~${stats['profile_estimated_saved_usd']:.2f} Argon snowball avoided (@ $3/M input)",
     ]

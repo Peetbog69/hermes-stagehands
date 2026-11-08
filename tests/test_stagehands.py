@@ -588,6 +588,62 @@ class TestSqlTrapsRegression(unittest.TestCase):
                 "",
             )
 
+    def test_profile_lifetime_front_door_persists_across_new_session_and_doctor_door1b(self):
+        import importlib.util
+        import sqlite3
+        import stats
+
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("ALTER TABLE sessions ADD COLUMN system_prompt TEXT")
+        cols = "id, source, model, model_config, parent_session_id, started_at, input_tokens, output_tokens, message_count, tool_call_count, api_call_count, estimated_cost_usd, system_prompt"
+        vals = "?,?,?,?,?,?,?,?,?,?,?,?,?"
+        conn.execute(
+            f"INSERT INTO sessions ({cols}) VALUES ({vals})",
+            (
+                "sess_newer_parent",
+                "telegram",
+                "google/gemini-4-argon",
+                None,
+                self.PARENT,
+                2000.0,
+                10000,
+                200,
+                4,
+                0,
+                2,
+                0.50,
+                "Base prompt without hook",
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+        res = stats.compute_stats(self.db_path, session_id="sess_newer_parent")
+        self.assertEqual(res["front_door"]["subagent_runs"], 0)
+        self.assertEqual(res["front_door_profile_total"]["subagent_runs"], 1)
+        report = stats.format_stats_report(res)
+        self.assertIn("1 backstage worker runs", report)
+
+        spec = importlib.util.spec_from_file_location("stagehands_init", ROOT / "__init__.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        with tempfile.TemporaryDirectory() as td:
+            cfg = Path(td) / "config.yaml"
+            cfg.write_text("delegation:\n  backend: stagehands\n", encoding="utf-8")
+            doc_warn = mod.run_doctor(config_path=cfg, db_path=self.db_path)
+            self.assertIn("[WARN] Door #1b · Live Prompt Hook Pinned", doc_warn)
+
+            conn = sqlite3.connect(self.db_path)
+            conn.execute(
+                "UPDATE sessions SET system_prompt = ? WHERE id = ?",
+                ("## Sovereign & Stagehands Discipline\n...", "sess_newer_parent"),
+            )
+            conn.commit()
+            conn.close()
+
+            doc_pass = mod.run_doctor(config_path=cfg, db_path=self.db_path)
+            self.assertIn("[PASS] Door #1b · Live Prompt Hook Pinned", doc_pass)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
