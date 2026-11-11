@@ -3,7 +3,7 @@ version: 1.0.0
 kind: backend
 label: Stagehands (Typed Backstage Workers)
 description: Sovereign & Stagehands — delegation provider plugin that routes subagents to typed, budgeted backstage workers (scout, librarian, code_monkey, adversary, briefer) while preserving the frontier sovereign voice.
-author: Tyler Gray (@Peetborg) & Nimbo
+author: Tyler Gray (@Peetbog69) & Nimbo
 license: MIT
 homepage: https://github.com/Peetbog69/hermes-stagehands
 tags:

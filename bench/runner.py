@@ -23,7 +23,12 @@ RATES = {
     "deepseek/deepseek-v4-flash": {
         "input": 0.50,
         "output": 0.50,
-        "role": "Stagehand (scout / code_monkey / briefer)"
+        "role": "Stagehand (scout / briefer)"
+    },
+    "deepseek/deepseek-v4.1-flash": {
+        "input": 0.50,
+        "output": 0.50,
+        "role": "Stagehand (code_monkey)"
     },
     "qwen/qwen3.7-flash": {
         "input": 0.40,

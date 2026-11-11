@@ -644,6 +644,21 @@ class TestSqlTrapsRegression(unittest.TestCase):
             doc_pass = mod.run_doctor(config_path=cfg, db_path=self.db_path)
             self.assertIn("[PASS] Door #1b · Live Prompt Hook Pinned", doc_pass)
 
+    def test_demo_fast_runs_zero_setup_subprocess(self):
+        import subprocess, sys
+        proc = subprocess.run(
+            [sys.executable, str(ROOT / "demo.py"), "--fast", "--color", "never"],
+            cwd=str(ROOT),
+            text=True,
+            capture_output=True,
+            timeout=15,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        self.assertIn("SOVEREIGN & STAGEHANDS", proc.stdout)
+        self.assertIn("deepseek/deepseek-v4.1-flash", proc.stdout)
+        self.assertIn("95.9%", proc.stdout)
+
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

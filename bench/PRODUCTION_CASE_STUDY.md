@@ -1,6 +1,6 @@
 # Production Case Study: 12 Days of a Live Frontier Companion (`google/gemini-4-argon`)
 
-Beyond synthetic benchmarks, Stagehands was designed around telemetry from a live, daily-driver Hermes v0.22.5 companion agent running **`google/gemini-4-argon`** (`$2.00 / $10.00` per 1M tokens) over a 12-day production window (**2026-10-23 to 2026-11-04**).
+Beyond synthetic benchmarks, Stagehands was designed around telemetry from a live, daily-driver Hermes v0.22.5 companion agent running **`google/gemini-4-argon`** over a 12-day production window (**2026-10-23 to 2026-11-04**).
 
  All figures below were extracted read-only (`mode=ro`, metadata and character lengths only) from the agent's production SQLite `state.db` (`session_model_usage`, `sessions`, and `messages` deduplicated by `tool_call_uid`).
 
@@ -32,7 +32,7 @@ Because Hermes appends every raw tool return to the parent transcript, each larg
 | **`terminal`** (522 doc/PDF builds, 148 `ffmpeg`, 81 `himalaya` email ops) | 918 | 2,783,104 | 695,776 | 3,032 / 56,492 | 179 / 73 | **`code_monkey`** (`max_tokens: 1500`) for build/test loops; **`scout`** (`max_tokens: 800`) for email/log triage |
 | **`read_file`** (long local docs, specs, configs) | 103 | 839,843 | 209,961 | 8,154 / 63,927 | 63 / 20 | **`scout`** (`deepseek-v4-flash`, `max_tokens: 800`) |
 | **`web_extract`** + **`web_search`** (articles, PDFs, search dumps) | 96 | 1,161,790 | 290,447 | 12,102 / 70,553 | 70 / 35 | **`librarian`** (`qwen3.7-flash`, `max_tokens: 1000`) returns cited excerpts only |
-| **`session_search`** + **`fact_store`** (historical transcript & memory recall) | 281 | 1,188,061 | 297,016 | 4,228 / 71,232 | 83 / 36 | **`briefer`** (`deepseek-v4-flash`, `max_tokens: 600`) condenses 71 KB history windows into `<250`-word briefs |
+| **`session_search`** + **`fact_store`** (historical transcript & memory recall) | 281 | 1,188,061 | 297,015 | 4,228 / 71,232 | 83 / 36 | **`briefer`** (`deepseek-v4-flash`, `max_tokens: 8192`) condenses 71 KB history windows into `<250`-word briefs |
 | **Companion-native tools** (`text_to_speech`: 159, `vision_analyze`: 110, `memory`: 26, `cronjob_manage`: 57, other: 158) | 510 | 464,647 | 116,162 | 911 / 12,725 | 15 / 3 | Stays in **Sovereign (`google/gemini-4-argon`)** — tiny footprint, direct user experience |
 | **Total (12-Day Argon Window)** | **2,079** | **10,296,604** | **2,574,151** | — | **570 / 272** | **95.5% of raw tool-output volume (`2.46M / 2.57M` tokens) is backstage-delegable** |
 
