@@ -153,7 +153,7 @@ Use your checkout's absolute path if it differs. In an active Hermes conversatio
 
 > **First 5 Minutes Note:** Hermes pins `system_prompt` when a session is created. After running `/stagehands on --janitor --now` for the first time, run `/new` once so your conversation picks up the `after_memory` Sovereign routing prompt section.
 >
-> **Disclosure —** Stagehands reads `<HERMES_HOME>/state.db` read-only to compute `/stagehands stats` and `@stagehands:` telemetry, and updates `delegation.backend` and `compression.*` keys in `<HERMES_HOME>/config.yaml` (writing a timestamped `.bak-janitor-*` backup first) only when you explicitly run `/stagehands on`, `/stagehands off`, or `/stagehands janitor`. It makes no network calls of its own and stores no credentials.
+> **Disclosure —** Stagehands reads the active Hermes profile's `state.db` read-only for `/stagehands stats` and `@stagehands:` telemetry. Explicit `/stagehands on` and `/stagehands off` commands ask Hermes to update `delegation.backend`; `/stagehands janitor` or the `--janitor` option updates `compression.*` using Hermes's atomic config writer. Stagehands does not create a separate timestamped backup. It makes no network calls of its own and stores no credentials.
 
 You can also expand live telemetry or health status inline inside any prompt using the `@stagehands:` context reference provider:
 

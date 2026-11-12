@@ -90,25 +90,16 @@ def _estimate_pruned_stub_orig_chars(content: str) -> int | None:
 
 def resolve_state_db(explicit_path: str | Path | None = None) -> Path | None:
     """Locate the active Hermes profile's state.db."""
-    if explicit_path:
+    if explicit_path is not None:
         p = Path(explicit_path).expanduser()
         return p if p.is_file() else None
 
-    candidates: list[Path] = []
-    env_db = os.environ.get("HERMES_STATE_DB")
-    if env_db:
-        candidates.append(Path(env_db).expanduser())
+    # Hermes resolves the active profile, including context-local overrides.
+    # Never fall back to another profile if the active profile has no DB.
+    from hermes_constants import get_hermes_home
 
-    profile = os.environ.get("HERMES_PROFILE")
-    hermes_home = Path(os.environ.get("HERMES_HOME", "~/.hermes")).expanduser()
-    if profile:
-        candidates.append(hermes_home / "profiles" / profile / "state.db")
-    candidates.append(hermes_home / "state.db")
-
-    for c in candidates:
-        if c.is_file():
-            return c
-    return None
+    candidate = get_hermes_home() / "state.db"
+    return candidate if candidate.is_file() else None
 
 
 def compute_stats(
@@ -151,6 +142,7 @@ def compute_stats(
                 f"FROM sessions WHERE id = ?",
                 (session_id,),
             ).fetchone()
+        session_scope = "exact" if row is not None else "none"
         if row is None:
             row = cur.execute(
                 f"SELECT id, source, model, started_at, input_tokens, output_tokens, "
@@ -161,6 +153,8 @@ def compute_stats(
                 f"AND json_extract(s.model_config, '$._delegate_from') IS NULL "
                 f"ORDER BY COALESCE((SELECT MAX(m.timestamp) FROM messages m WHERE m.session_id = s.id), s.started_at) DESC LIMIT 1"
             ).fetchone()
+            if row is not None:
+                session_scope = "latest_in_profile"
         if row:
             active_session = dict(row)
             in_tok = int(active_session.get("input_tokens") or 0)
@@ -243,7 +237,13 @@ def compute_stats(
                 "children_cost_usd": child_usd,
             }
 
-        active_fd = _front_door_for_scope(active_sid) if active_sid else _front_door_for_scope(None)
+        active_fd = _front_door_for_scope(active_sid) if active_sid else {
+            "subagent_runs": 0,
+            "backstage_raw_tokens": 0,
+            "returned_brief_tokens": 0,
+            "snowball_avoided_tokens": 0,
+            "children_cost_usd": 0.0,
+        }
         profile_fd = _front_door_for_scope(None)
         subagent_count = active_fd["subagent_runs"]
         backstage_raw_tokens = active_fd["backstage_raw_tokens"]
@@ -331,6 +331,7 @@ def compute_stats(
 
         return {
             "db_path": str(resolved),
+            "session_scope": session_scope,
             "active_session": active_session,
             "front_door": {
                 "subagent_runs": subagent_count,
@@ -386,6 +387,12 @@ def format_stats_report(stats: dict[str, Any]) -> str:
     jan_s = stats["janitor_active_session"]
     jan_p = stats["janitor_profile_total"]
 
+    scope = stats.get("session_scope", "none")
+    session_label = {
+        "exact": "Selected session",
+        "latest_in_profile": "Latest session in this profile (not necessarily this chat)",
+        "none": "No parent session found in this profile",
+    }.get(scope, "Session")
     sid = sess.get("id", "none")
     s_model = sess.get("model", "unknown")
     s_in = int(sess.get("input_tokens") or 0)
@@ -403,17 +410,17 @@ def format_stats_report(stats: dict[str, Any]) -> str:
 
     lines = [
         "📊 Sovereign & Stagehands — Live Savings Scoreboard",
-        f"  • Active Session: `{sid}` ({s_model})",
+        f"  • {session_label}: `{sid}` ({s_model})",
         f"    {s_msgs} msgs · {s_tools} tool calls · {s_in:,} cumulative input tokens{cache_line}",
         "  • Front-Door Bouncer (Stagehands Workers):",
         f"    {fd['subagent_runs']} runs · {fd['backstage_raw_tokens']:,} raw tokens absorbed backstage "
         f"→ {fd['returned_brief_tokens']:,} brief tokens returned "
         f"({fd['snowball_avoided_tokens']:,} snowball tokens dodged)",
-        "  • Back-Door Janitor (Active Session Pruner):",
+        "  • Back-Door Janitor (Selected Session Pruner):",
         f"    {jan_s['pruned_calls']} bulky tool outputs pruned · "
         f"{jan_s['reclaimed_tokens']:,} raw tokens reclaimed · "
         f"{jan_s['snowball_avoided_tokens']:,} re-read tokens dodged "
-        f"(${stats['active_estimated_saved_usd']:.2f} list / ${cache_adj_usd:.2f} cache-adj saved this chat)",
+        f"(${stats['active_estimated_saved_usd']:.2f} list / ${cache_adj_usd:.2f} cache-adj saved for selected session)",
         "  • Profile Lifetime Janitor + Stagehands:",
         f"    {fd_p['subagent_runs']:,} backstage worker runs · "
         f"{jan_p['pruned_calls']:,} pruned tool dumps · "

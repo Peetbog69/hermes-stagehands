@@ -426,6 +426,39 @@ class TestSqlTrapsRegression(unittest.TestCase):
 
         return stats.compute_savings(self.PARENT, db_path=self.db_path)
 
+    def test_report_labels_latest_profile_fallback_not_current_chat(self):
+        import stats
+
+        for session_id in (None, "gateway:telegram:chat:1"):
+            with self.subTest(session_id=session_id):
+                result = stats.compute_stats(self.db_path, session_id=session_id)
+                self.assertEqual(result["active_session"]["id"], "sess_branch")
+                self.assertEqual(result["session_scope"], "latest_in_profile")
+                report = stats.format_stats_report(result).lower()
+                self.assertIn("latest session in this profile", report)
+                self.assertIn("not necessarily this chat", report)
+                self.assertNotIn("saved this chat", report)
+                self.assertNotIn("active session", report)
+
+    def test_report_labels_exact_session_selection(self):
+        import stats
+
+        result = stats.compute_stats(self.db_path, session_id=self.PARENT)
+        self.assertEqual(result["session_scope"], "exact")
+        self.assertEqual(result["active_session"]["id"], self.PARENT)
+        self.assertNotIn("latest session in this profile", stats.format_stats_report(result).lower())
+
+    def test_no_parent_session_does_not_count_profile_runs_as_session(self):
+        import sqlite3
+        import stats
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("DELETE FROM sessions WHERE source != 'subagent'")
+        result = stats.compute_stats(self.db_path)
+        self.assertEqual(result["session_scope"], "none")
+        self.assertEqual(result["front_door"]["subagent_runs"], 0)
+        self.assertEqual(result["front_door_profile_total"]["subagent_runs"], 1)
+
     def test_trap_a_subagent_filter_excludes_branch_lineage(self):
         fd = self._run()["front_door"]
         # Exactly ONE real subagent; the /branch decoy is excluded.
@@ -559,8 +592,9 @@ class TestSqlTrapsRegression(unittest.TestCase):
                 os.environ.pop("HERMES_STATE_DB", None)
                 self.assertEqual(stats.resolve_state_db(), default_db)
 
+                # HERMES_PROFILE is not a database selector; Hermes owns home resolution.
                 os.environ["HERMES_PROFILE"] = "nimbo"
-                self.assertEqual(stats.resolve_state_db(), decoy_nimbo)
+                self.assertEqual(stats.resolve_state_db(), default_db)
             finally:
                 for k, v in (("HERMES_HOME", old_home), ("HERMES_PROFILE", old_prof), ("HERMES_STATE_DB", old_db)):
                     if v is None:

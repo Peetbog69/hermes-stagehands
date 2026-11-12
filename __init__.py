@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import yaml
+from hermes_yaml import safe_dump, safe_load
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ def _read_raw_config(config_path: Path | None = None) -> tuple[Path, dict[str, A
         p = Path(config_path)
         if not p.is_file():
             return p, {}
-        data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        data = safe_load(p.read_text(encoding="utf-8")) or {}
         return p, (data if isinstance(data, dict) else {})
     from hermes_cli.config import get_config_path, read_user_config_raw
 
@@ -52,7 +52,7 @@ def _write_raw_config(path: Path, data: dict[str, Any], *, explicit_path: bool =
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".yaml.tmp")
-    tmp.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    tmp.write_text(safe_dump(data, sort_keys=False), encoding="utf-8")
     tmp.replace(path)
 
 
